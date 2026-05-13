@@ -1,0 +1,58 @@
+appId: com.captionaut.app
+productName: Captionaut
+copyright: Copyright 2025 Captionaut
+
+directories:
+  output: release/
+  buildResources: build/
+
+# JS files included in the Electron package
+files:
+  - electron/dist/**
+  - package.json
+
+# Binaries placed in app's resources/ dir (process.resourcesPath)
+extraResources:
+  - from: dist/captionaut-backend/
+    to: sidecar/
+    filter:
+      - "**/*"
+  - from: resources/${os}/
+    to: ffmpeg/
+    filter:
+      - "ffmpeg*"
+      - "ffprobe*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.icns
+  category: public.app-category.video
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+dmg:
+  sign: false
+
+linux:
+  target:
+    - AppImage
+  icon: build/icon.png

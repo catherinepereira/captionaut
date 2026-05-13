@@ -1,0 +1,156 @@
+.editor {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 500px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--purple-light);
+}
+
+.count {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.row {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: text;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.row:hover {
+  background: var(--bg-input);
+}
+
+.active {
+  background: #1e1a40;
+  border-left: 3px solid var(--purple);
+}
+
+.mismatch {
+  border-left: 3px solid var(--red);
+}
+
+.times {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.time {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: var(--bg);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.time:hover {
+  color: var(--purple-light);
+}
+
+.arrow {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.timeInput {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--purple);
+  border-radius: 4px;
+  padding: 2px 6px;
+  width: 72px;
+  outline: none;
+}
+
+.text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  cursor: text;
+}
+
+.text:hover {
+  color: var(--purple-light);
+}
+
+.textArea {
+  width: 100%;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--purple);
+  border-radius: 6px;
+  padding: 6px 8px;
+  resize: vertical;
+  outline: none;
+  line-height: 1.5;
+}
+
+.badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--red);
+  background: rgba(224, 92, 122, 0.12);
+  border: 1px solid rgba(224, 92, 122, 0.3);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.speakerTag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  opacity: 0.85;
+}
