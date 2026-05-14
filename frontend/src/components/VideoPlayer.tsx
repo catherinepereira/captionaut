@@ -1,5 +1,6 @@
-import { useRef, useEffect } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
+import { findActiveCaption } from '../utils/captions'
 import styles from './VideoPlayer.module.css'
 
 export function VideoPlayer() {
@@ -61,8 +62,9 @@ export function VideoPlayer() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const activeCaption = captions.find(
-    (c) => currentTime >= c.start && currentTime <= c.end
+  const activeCaption = useMemo(
+    () => findActiveCaption(captions, currentTime),
+    [captions, currentTime],
   )
 
   if (!videoUrl) return null

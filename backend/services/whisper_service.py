@@ -1,36 +1,50 @@
+import gc
 import sys
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
+import numpy as np
+import torch
 import whisper
 
 from ..models.schemas import Caption
 
-# `import whisper.transcribe as _wt` resolves to the re-exported function, not
-# the submodule (because whisper/__init__.py does `from .transcribe import transcribe`,
-# which shadows the submodule on the whisper package). Grab the actual module
-# object from sys.modules instead.
+AudioInput = Union[str, np.ndarray]
+
+# `whisper.transcribe` resolves to the re-exported function, not the submodule
+# (whisper/__init__.py does `from .transcribe import transcribe`). Grab the
+# real module from sys.modules so we can monkey-patch its `tqdm.tqdm`.
 _whisper_transcribe_mod = sys.modules["whisper.transcribe"]
 
-# Cache loaded models by size to avoid re-loading on subsequent calls.
-_models: dict[str, object] = {}
+# Single-slot cache: switching size frees the previous model, otherwise multiple
+# sizes can stack ~5 GB of weights in one session.
+_model_slot: tuple[str, object] | None = None
 
 
 VALID_MODEL_SIZES = ("tiny", "base", "small", "medium", "large")
 
 
 def get_model(size: str = "base"):
+    global _model_slot
     if size not in VALID_MODEL_SIZES:
         raise ValueError(f"Invalid model size: {size}")
-    if size not in _models:
-        _models[size] = whisper.load_model(size)
-    return _models[size]
+    if _model_slot is not None and _model_slot[0] == size:
+        return _model_slot[1]
+
+    _model_slot = None
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    model = whisper.load_model(size)
+    _model_slot = (size, model)
+    return model
 
 
 def _make_progress_tqdm(cb: Callable[[int], None]):
-    """Build a tqdm-compatible class that forwards progress to `cb`.
+    """Build a tqdm-compatible class that forwards updates to `cb`.
 
-    Closure-captured callback — each transcribe() call gets its own class so
-    concurrent invocations don't clobber each other.
+    A class is built per call so each transcribe() gets its own closure-captured
+    callback; concurrent invocations don't clobber each other.
     """
     class _ProgressTqdm:
         def __init__(self, *_args, total: int = 0, **_kwargs):
@@ -60,36 +74,37 @@ def _make_progress_tqdm(cb: Callable[[int], None]):
 
 
 def transcribe(
-    video_path: str,
+    source: AudioInput,
     progress_cb: Optional[Callable[[int], None]] = None,
     *,
     model_size: str = "base",
     initial_prompt: Optional[str] = None,
 ) -> list[Caption]:
+    """Transcribe a file path or an in-memory 16 kHz mono float32 numpy array.
+
+    A pre-decoded array skips Whisper's internal FFmpeg roundtrip, which matters
+    when an earlier pipeline stage already decoded the audio.
+    """
     model = get_model(model_size)
 
-    transcribe_kwargs = {
-        # Word-level timestamps produce much tighter segment boundaries
-        # (Whisper's segment-level timing tends to drift).
-        "word_timestamps": True,
-    }
+    # word_timestamps=True tightens segment boundaries vs Whisper's defaults.
+    transcribe_kwargs = {"word_timestamps": True}
     if initial_prompt:
         transcribe_kwargs["initial_prompt"] = initial_prompt
 
     if progress_cb is None:
-        result = model.transcribe(video_path, **transcribe_kwargs)
+        result = model.transcribe(source, **transcribe_kwargs)
     else:
         tqdm_module = _whisper_transcribe_mod.tqdm
         original = tqdm_module.tqdm
         tqdm_module.tqdm = _make_progress_tqdm(progress_cb)
         try:
-            result = model.transcribe(video_path, verbose=False, **transcribe_kwargs)
+            result = model.transcribe(source, verbose=False, **transcribe_kwargs)
         finally:
             tqdm_module.tqdm = original
 
     captions = []
     for i, seg in enumerate(result["segments"]):
-        # Prefer word-level timing for tighter caption boundaries when available
         words = seg.get("words") or []
         if words:
             start = words[0].get("start", seg["start"])

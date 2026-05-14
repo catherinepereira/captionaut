@@ -7,12 +7,8 @@ export interface TranscribeResult {
   speakers: string[]
 }
 
-/**
- * Frontend always talks to a same-origin `/api` path.
- * - Dev: Vite proxies `/api` → FastAPI backend (see vite.config.ts).
- * - Packaged: FastAPI serves the React build as static files, so `/api` is same-origin.
- * - Electron: Loads the page from FastAPI's static server, so same-origin still holds.
- */
+// Same-origin in every environment: Vite proxies `/api` in dev, FastAPI
+// serves the static React build under `/` in production / Electron.
 const BASE = '/api'
 
 export async function uploadVideo(file: File): Promise<string> {
@@ -94,9 +90,7 @@ export async function checkModelStatus(): Promise<{ downloaded: boolean; size_mb
   return res.json()
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-export interface ProgressEvent {
+interface ProgressEvent {
   status?: 'downloading' | 'done' | 'already_downloaded' | 'error'
   percent?: number
   done?: boolean
@@ -153,5 +147,6 @@ export function downloadBlob(blob: Blob, filename: string): void {
   a.href = url
   a.download = filename
   a.click()
-  URL.revokeObjectURL(url)
+  // Defer revoke a tick — some browsers haven't started the download yet.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }

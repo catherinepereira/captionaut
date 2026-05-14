@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCaptionStore, type Caption } from '../stores/captionStore'
+import { findActiveCaptionId } from '../utils/captions'
 import styles from './CaptionEditor.module.css'
 
 function formatTime(s: number) {
@@ -26,7 +27,9 @@ interface RowProps {
   registerRef: (id: number, el: HTMLDivElement | null) => void
 }
 
-function CaptionRow({ caption, isActive, isMismatched, speakerColor, onSeek, registerRef }: RowProps) {
+const CaptionRow = memo(function CaptionRow({
+  caption, isActive, isMismatched, speakerColor, onSeek, registerRef,
+}: RowProps) {
   const updateCaption = useCaptionStore((s) => s.updateCaption)
   const [editingField, setEditingField] = useState<'text' | 'start' | 'end' | null>(null)
   const [draft, setDraft] = useState('')
@@ -127,7 +130,7 @@ function CaptionRow({ caption, isActive, isMismatched, speakerColor, onSeek, reg
       {isMismatched && <span className={styles.badge}>mismatch</span>}
     </div>
   )
-}
+})
 
 export function CaptionEditor() {
   const captions = useCaptionStore((s) => s.captions)
@@ -137,10 +140,11 @@ export function CaptionEditor() {
   const requestSeek = useCaptionStore((s) => s.requestSeek)
   const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
-  const registerRef = (id: number, el: HTMLDivElement | null) => {
+  // Stable identity so memo(CaptionRow) doesn't re-render on every parent render.
+  const registerRef = useCallback((id: number, el: HTMLDivElement | null) => {
     if (el) rowRefs.current.set(id, el)
     else rowRefs.current.delete(id)
-  }
+  }, [])
 
   const mismatchedIds = useMemo(
     () => new Set(alignment.filter((a) => !a.matched).map((a) => a.caption_id)),
@@ -148,7 +152,7 @@ export function CaptionEditor() {
   )
 
   const activeId = useMemo(
-    () => captions.find((c) => currentTime >= c.start && currentTime <= c.end)?.id,
+    () => findActiveCaptionId(captions, currentTime),
     [captions, currentTime],
   )
 

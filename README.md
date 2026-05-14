@@ -24,14 +24,16 @@
 - First-run Whisper model download with progress UI
 - Error banner with dismissable messages
 
-### 🛠️ In progress
-- Electron desktop app — installable `.exe` / `.dmg` via electron-builder
-- PyInstaller sidecar bundle — Whisper + FastAPI as a single binary
+- **Optional speaker diarization** (pyannote) with per-speaker colors in editor + burn-in
+- **Optional audio denoising** (Demucs vocal isolation) for noisy videos
+
+- **Electron desktop packaging** — `electron-builder` config + GitHub Actions workflow produce `.exe` / `.dmg` installers
+- **PyInstaller sidecar bundle** — Whisper + FastAPI compiled into a single binary
 
 ### 🗺️ Planned
-- Speaker diarization with per-speaker colors (pyannote, optional)
-- Per-speaker burn-in colors
-- Settings/preferences screen (HF token, default model size, etc.)
+- Project save/restore (currently work is lost on refresh)
+- Settings/preferences screen (default model size, etc.)
+- Code-signed installers (currently unsigned; users see SmartScreen / Gatekeeper warnings)
 
 ## Quick start
 
@@ -75,8 +77,8 @@ captionaut/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/          # DropZone, VideoPlayer, CaptionEditor,
-│   │   │                        # Toolbar, StylePanel, ConfigScreen,
-│   │   │                        # ModelDownload, ErrorBanner
+│   │   │                        # Toolbar, StylePanel, SpeakerPanel,
+│   │   │                        # ConfigScreen, ModelDownload, ErrorBanner
 │   │   ├── stores/captionStore.ts
 │   │   ├── api.ts               # same-origin /api wrapper
 │   │   └── config.ts            # mirror of backend/config.py

@@ -43,7 +43,7 @@ def _format_ass_ts(seconds: float) -> str:
 
 
 def _hex_to_ass_color(hex_str: str) -> str:
-    """ASS uses &HAABBGGRR (alpha + BGR). Unrecognized input → white."""
+    """Convert "#RRGGBB" to ASS's &HAABBGGRR. Unrecognized input → white."""
     if not _HEX_COLOR_RE.match(hex_str or ""):
         return "&H00FFFFFF"
     h = hex_str.lstrip("#")
@@ -64,31 +64,23 @@ def _safe_font_size(size: int) -> int:
 
 
 def _escape_ass_text(text: str) -> str:
-    """Escape caption text for an ASS Dialogue line.
+    """Sanitize caption text for an ASS Dialogue line.
 
-    libass treats `\\N` as a line break, `{...}` as override-tag blocks, and
-    `\\h` as a hard space. We neutralize newlines (legitimate line breaks),
-    and escape `{` so override-tag injection is impossible.
+    libass treats `{...}` as override-tag blocks; we escape braces to prevent
+    injection. Newlines become `\\N`. Control chars are dropped.
     """
     if not text:
         return ""
-    # Strip control chars (NUL, etc.) except tab
     t = "".join(ch for ch in text if ch == "\t" or ord(ch) >= 0x20 or ch in "\r\n")
-    # Normalize line breaks → ASS `\N`
     t = t.replace("\r\n", "\n").replace("\r", "\n").replace("\n", r"\N")
-    # Defang override-tag blocks by escaping the opening brace
     t = t.replace("\\", r"\\").replace("{", r"\{").replace("}", r"\}")
-    # Re-allow our intentional `\N` (was clobbered by the \\\\ replace above)
+    # The `\\` replace above clobbered our intentional `\N`. Restore it.
     t = t.replace(r"\\N", r"\N")
     return t
 
 
 def _escape_cue_text(text: str) -> str:
-    """Escape caption text for SRT/VTT cue body.
-
-    Replace newlines with spaces, strip the `-->` cue separator (would break
-    parsers), and drop control chars.
-    """
+    """Sanitize caption text for SRT/VTT cue body. Drops newlines and `-->`."""
     if not text:
         return ""
     t = "".join(ch for ch in text if ch == "\t" or ord(ch) >= 0x20 or ch in "\r\n")
@@ -98,12 +90,11 @@ def _escape_cue_text(text: str) -> str:
 
 
 def _sanitize_stderr(stderr: str) -> str:
-    """Strip absolute paths and home directory before bubbling FFmpeg errors."""
+    """Trim FFmpeg stderr for safe display: hide the home dir and keep the tail."""
     if not stderr:
         return ""
     home = os.path.expanduser("~")
     cleaned = stderr.replace(home, "~")
-    # Drop everything but the last few lines — FFmpeg dumps a lot
     tail = cleaned.strip().splitlines()[-5:]
     return " | ".join(tail)
 
@@ -120,7 +111,7 @@ _STYLE_NAME_RE = re.compile(r"[^A-Za-z0-9_]")
 
 
 def _safe_style_name(label: str) -> str:
-    """ASS style names must be a single token. Sanitize speaker labels."""
+    """ASS style names must be a single token (alphanumeric + underscore)."""
     cleaned = _STYLE_NAME_RE.sub("_", label or "")
     return cleaned[:32] or "Speaker"
 
@@ -147,7 +138,7 @@ def _build_ass(
     alignment = pos["alignment"]
     margin_v = pos["margin_v"]
 
-    # One Style entry per detected speaker, plus Default for unattributed captions.
+    # One Style per detected speaker, plus Default for unattributed captions.
     speaker_style_names: dict[str, str] = {}
     style_lines: list[str] = [
         _style_line("Default", font, font_size, default_primary, outline, alignment, margin_v),

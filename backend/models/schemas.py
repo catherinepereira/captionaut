@@ -32,12 +32,6 @@ class TranscriptionResponse(BaseModel):
     speakers: list[str] = []
 
 
-class UpdateCaptionRequest(BaseModel):
-    text: Optional[str] = None
-    start: Optional[float] = None
-    end: Optional[float] = None
-
-
 class AlignmentResult(BaseModel):
     caption_id: int
     matched: bool

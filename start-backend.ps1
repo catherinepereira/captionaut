@@ -1,2 +1,2 @@
 Set-Location "$PSScriptRoot"
-python -m uvicorn backend.main:app --reload --port 8000
+python -m backend --port 8010

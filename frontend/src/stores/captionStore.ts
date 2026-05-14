@@ -59,16 +59,15 @@ export const DEFAULT_TRANSCRIBE_CONFIG: TranscribeConfig = {
   denoise: false,
 }
 
-// Palette used to assign colors to detected speakers (consumer cycles through it)
 export const SPEAKER_PALETTE = [
-  '#7c5cfc', // purple
-  '#4caf91', // green
-  '#e05c7a', // red
-  '#ffa726', // orange
-  '#42a5f5', // blue
-  '#ec407a', // pink
-  '#ab47bc', // violet
-  '#26c6da', // cyan
+  '#7c5cfc',
+  '#4caf91',
+  '#e05c7a',
+  '#ffa726',
+  '#42a5f5',
+  '#ec407a',
+  '#ab47bc',
+  '#26c6da',
 ]
 
 type AppState =
@@ -135,9 +134,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
   burnStyle: DEFAULT_BURN_STYLE,
 
-  setVideoFile: (file) => set({
-    videoFile: file,
-    videoUrl: URL.createObjectURL(file),
+  setVideoFile: (file) => set((store) => {
+    if (store.videoUrl) URL.revokeObjectURL(store.videoUrl)
+    return { videoFile: file, videoUrl: URL.createObjectURL(file) }
   }),
   setJobId: (id) => set({ jobId: id }),
   setState: (s) => set({ state: s }),
@@ -147,7 +146,12 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     const next = store.captions.map((c) => {
       if (c.id !== id) return c
       const merged = { ...c, ...patch }
-      if (merged.text === c.text && merged.start === c.start && merged.end === c.end) {
+      if (
+        merged.text === c.text &&
+        merged.start === c.start &&
+        merged.end === c.end &&
+        merged.speaker === c.speaker
+      ) {
         return c
       }
       changed = true
@@ -172,10 +176,13 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       },
     })),
   setBurnStyle: (patch) => set((store) => ({ burnStyle: { ...store.burnStyle, ...patch } })),
-  reset: () => set({
-    state: 'idle', jobId: null, videoFile: null, videoUrl: null,
-    captions: [], alignment: [], speakers: [], speakerColors: {},
-    currentTime: 0, seekRequest: null, error: null,
-    transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
+  reset: () => set((store) => {
+    if (store.videoUrl) URL.revokeObjectURL(store.videoUrl)
+    return {
+      state: 'idle', jobId: null, videoFile: null, videoUrl: null,
+      captions: [], alignment: [], speakers: [], speakerColors: {},
+      currentTime: 0, seekRequest: null, error: null,
+      transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
+    }
   }),
 }))

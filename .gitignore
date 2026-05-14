@@ -5,12 +5,11 @@ __pycache__/
 *.pyd
 .Python
 *.egg-info/
-dist/
-build/
 .venv/
 venv/
 
-# PyInstaller
+# PyInstaller output (sidecar binary lives under dist/captionaut-backend/)
+dist/
 *.spec.bak
 build/pyinstaller/
 
@@ -21,17 +20,19 @@ frontend/node_modules/
 # Frontend build
 frontend/dist/
 
-# Electron build
+# Electron compiled TS + installer output
 electron/dist/
 release/
 
-# Bundled binaries (downloaded by CI, not committed)
+# FFmpeg binaries downloaded by CI; never committed
 resources/win/
 resources/mac/
 
-# Uploads / outputs (user data)
+# Local uploads / outputs (user data, never committed)
 backend/uploads/
 backend/outputs/
+backend/backend.log
+backend/backend.log.out
 
 # OS
 .DS_Store

@@ -5,11 +5,6 @@ import * as fs from "fs";
 import { app } from "electron";
 
 let sidecarProcess: ChildProcess | null = null;
-let assignedPort: number | null = null;
-
-export function getSidecarPort(): number | null {
-  return assignedPort;
-}
 
 async function findFreePort(start = 49152): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -55,7 +50,9 @@ function getDataDir(): string {
   return dir;
 }
 
-async function waitForReady(port: number, maxMs = 30_000): Promise<void> {
+// 120s default — the packaged PyInstaller bundle unpacks several GB to a
+// temp dir on first launch, which can take a minute on slower disks.
+async function waitForReady(port: number, maxMs = 120_000): Promise<void> {
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
     try {
@@ -71,7 +68,6 @@ async function waitForReady(port: number, maxMs = 30_000): Promise<void> {
 
 export async function startSidecar(): Promise<number> {
   const port = await findFreePort();
-  assignedPort = port;
 
   const sidecarPath = getSidecarPath();
   const ffmpegPath = getFFmpegPath();

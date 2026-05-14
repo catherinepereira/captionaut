@@ -1,6 +1,5 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
-import * as path from "path";
-import { startSidecar, stopSidecar, getSidecarPort } from "./sidecar";
+import { app, BrowserWindow, shell } from "electron";
+import { startSidecar, stopSidecar } from "./sidecar";
 
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
@@ -43,7 +42,6 @@ async function createMainWindow(port: number): Promise<BrowserWindow> {
     backgroundColor: "#0e0c1a",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
@@ -59,7 +57,7 @@ async function createMainWindow(port: number): Promise<BrowserWindow> {
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    // Only allow http(s) — prevents file://, javascript:, etc. from being launched by OS
+    // Scheme allowlist: prevents file://, javascript://, etc. from reaching the OS.
     try {
       const scheme = new URL(url).protocol;
       if (scheme === "http:" || scheme === "https:") {
@@ -108,5 +106,3 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   stopSidecar();
 });
-
-ipcMain.handle("get-backend-port", () => getSidecarPort());

@@ -10,16 +10,17 @@ torchcodec-based file loader, which is currently broken on FFmpeg 8.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Optional, Union
 
+import numpy as np
 import torch
 
 from ..models.schemas import Caption
-from .denoise_service import decode_audio
+from .denoise_service import decode_audio, SPEECH_SAMPLE_RATE
+
+AudioInput = Union[str, np.ndarray]
 
 log = logging.getLogger(__name__)
-
-PYANNOTE_SAMPLE_RATE = 16000
 
 _pipeline = None
 
@@ -29,10 +30,7 @@ def _device() -> str:
 
 
 def _load_pipeline(hf_token: str):
-    """Load pyannote 3.1 pipeline once; the same model object is reused across calls.
-
-    The token is only used at first load — we don't cache it.
-    """
+    """Load the pyannote pipeline once. Token is only used at first load."""
     global _pipeline
     if _pipeline is not None:
         return _pipeline
@@ -53,20 +51,24 @@ def _load_pipeline(hf_token: str):
 
 
 def diarize(
-    audio_path: str,
+    source: AudioInput,
     hf_token: str,
     *,
     num_speakers: Optional[int] = None,
 ) -> list[tuple[float, float, str]]:
-    """Run pyannote diarization. Returns [(start_s, end_s, speaker_label), ...]."""
+    """Run pyannote diarization. Returns [(start_s, end_s, speaker_label), ...].
+
+    `source` is either a file path or a mono float32 array at SPEECH_SAMPLE_RATE.
+    """
     pipe = _load_pipeline(hf_token)
 
-    # Pre-decode to mono 16 kHz via FFmpeg → numpy → tensor. Bypasses pyannote's
-    # internal torchcodec loader (broken on FFmpeg 8).
-    audio = decode_audio(audio_path, target_sr=PYANNOTE_SAMPLE_RATE, channels=1)
+    if isinstance(source, np.ndarray):
+        audio = source if source.ndim == 2 else source[np.newaxis, :]
+    else:
+        audio = decode_audio(source, target_sr=SPEECH_SAMPLE_RATE, channels=1)
     waveform = torch.from_numpy(audio).to(_device())
 
-    kwargs = {"waveform": waveform, "sample_rate": PYANNOTE_SAMPLE_RATE}
+    kwargs = {"waveform": waveform, "sample_rate": SPEECH_SAMPLE_RATE}
     pipe_kwargs = {}
     if num_speakers is not None and num_speakers > 0:
         pipe_kwargs["num_speakers"] = num_speakers
@@ -81,7 +83,7 @@ def diarize(
 
 
 def assign_speakers(captions: list[Caption], turns: list[tuple[float, float, str]]) -> list[Caption]:
-    """Annotate captions with the speaker who has the most overlap with each caption."""
+    """Label each caption with the speaker whose turn overlaps it most."""
     if not turns:
         return captions
 

@@ -7,6 +7,7 @@ import threading
 import urllib.request
 import uuid
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import AsyncIterator, Callable, Any
 
@@ -25,12 +26,10 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Upload limits / accepted formats
-MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
-MAX_SCRIPT_BYTES = 5 * 1024 * 1024         # 5 MB
+MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
+MAX_SCRIPT_BYTES = 5 * 1024 * 1024
+UPLOAD_CHUNK_BYTES = 1 << 20
 ALLOWED_VIDEO_EXTS = frozenset({".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"})
-
-# Bounded LRU job cache
 MAX_JOBS = 50
 
 
@@ -40,13 +39,13 @@ def _get_dirs():
 
 
 _jobs: "OrderedDict[str, dict]" = OrderedDict()
+_active_jobs: set[str] = set()
 
 
 _JOB_FILE_KEYS = ("path", "output_path", "denoised_path")
 
 
 def _delete_job_files(job: dict) -> None:
-    """Unlink any disk artifacts associated with an evicted job."""
     for key in _JOB_FILE_KEYS:
         p = job.get(key)
         if not p:
@@ -57,15 +56,38 @@ def _delete_job_files(job: dict) -> None:
             log.warning("Failed to remove %s (%s): %s", key, p, e)
 
 
+def _evict_until_bounded() -> None:
+    """Drop oldest non-active jobs until we're under MAX_JOBS."""
+    if len(_jobs) <= MAX_JOBS:
+        return
+    overflow = len(_jobs) - MAX_JOBS
+    for job_id in list(_jobs.keys()):
+        if overflow <= 0:
+            break
+        if job_id in _active_jobs:
+            continue
+        old = _jobs.pop(job_id)
+        _delete_job_files(old)
+        overflow -= 1
+
+
 def _touch_job(job_id: str, **updates: Any) -> dict:
     job = _jobs.get(job_id, {})
     job.update(updates)
     _jobs[job_id] = job
     _jobs.move_to_end(job_id)
-    while len(_jobs) > MAX_JOBS:
-        _, old = _jobs.popitem(last=False)
-        _delete_job_files(old)
+    _evict_until_bounded()
     return job
+
+
+@contextmanager
+def _in_flight(job_id: str):
+    """Block LRU eviction of a job for the duration of its transcribe pipeline."""
+    _active_jobs.add(job_id)
+    try:
+        yield
+    finally:
+        _active_jobs.discard(job_id)
 
 
 WHISPER_MODEL_PATH = Path.home() / ".cache" / "whisper" / "base.pt"
@@ -105,14 +127,10 @@ async def _poll_sse(
         await asyncio.sleep(interval)
 
 
-# ── Health ─────────────────────────────────────────────────────────────────────
-
 @router.get("/status")
 async def status():
     return {"ok": True}
 
-
-# ── Model management ───────────────────────────────────────────────────────────
 
 @router.get("/model-status")
 async def model_status():
@@ -130,7 +148,6 @@ async def download_model():
             yield f"data: {json.dumps({'status': 'already_downloaded'})}\n\n"
             return
 
-        # Only one download thread at a time; concurrent SSE clients observe the same state
         if not _model_lock.acquire(blocking=False):
             yield (
                 "data: " + json.dumps({
@@ -153,7 +170,7 @@ async def download_model():
                 urllib.request.urlretrieve(WHISPER_MODEL_URL, tmp, _hook)
                 tmp.replace(WHISPER_MODEL_PATH)  # atomic, overwrites on Windows too
                 state["done"] = True
-            except Exception as exc:
+            except Exception:
                 log.exception("Model download failed")
                 state["error"] = "Download failed. Please check your connection."
             finally:
@@ -166,8 +183,6 @@ async def download_model():
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
-
-# ── Video upload ───────────────────────────────────────────────────────────────
 
 @router.post("/upload", response_model=dict)
 async def upload_video(file: UploadFile = File(...)):
@@ -184,15 +199,12 @@ async def upload_video(file: UploadFile = File(...)):
     written = 0
     try:
         async with aiofiles.open(dest, "wb") as f:
-            while chunk := await file.read(1024 * 1024):
+            while chunk := await file.read(UPLOAD_CHUNK_BYTES):
                 written += len(chunk)
                 if written > MAX_UPLOAD_BYTES:
                     raise HTTPException(413, "File too large (max 2 GB)")
                 await f.write(chunk)
-    except HTTPException:
-        Path(dest).unlink(missing_ok=True)
-        raise
-    except Exception:
+    except BaseException:
         Path(dest).unlink(missing_ok=True)
         raise
 
@@ -200,15 +212,11 @@ async def upload_video(file: UploadFile = File(...)):
     return {"job_id": job_id}
 
 
-# ── Transcription ──────────────────────────────────────────────────────────────
-
 def _progress_ranges(denoise: bool, diarize: bool) -> dict[str, tuple[int, int]]:
-    """Allocate the 0..100 progress range across enabled stages.
+    """Map each enabled stage to its (start, end) slice of the 0..100 bar.
 
-    Denoising and diarization have no fine-grained progress, so they get a flat
-    range that we jump to on stage start. Whisper has live progress callbacks.
+    Whisper gets the largest share because it's the only stage with live ticks.
     """
-    # Relative weights — only Whisper has live ticks, so it gets the biggest share.
     weights: dict[str, int] = {}
     if denoise:
         weights["denoise"] = 2
@@ -242,59 +250,65 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
     loop = asyncio.get_running_loop()
 
     ranges = _progress_ranges(req.denoise, req.diarization.enabled)
-    audio_source = job["path"]
 
-    # ── Optional: denoise (Demucs vocal isolation) ────────────────────────────
-    if req.denoise:
-        ds_start, ds_end = ranges["denoise"]
-        job["pct"] = ds_start
-        try:
-            audio_source = await loop.run_in_executor(
-                None, denoise_service.denoise, job["path"], OUTPUT_DIR
+    # If denoise runs, the vocals tensor is shared in-memory with the later
+    # stages; otherwise each stage reads from the uploaded file directly.
+    whisper_source: Any = job["path"]
+    diarize_source: Any = job["path"]
+
+    with _in_flight(job_id):
+        if req.denoise:
+            ds_start, ds_end = ranges["denoise"]
+            job["pct"] = ds_start
+            try:
+                vocals, sr = await loop.run_in_executor(
+                    None, denoise_service.isolate_vocals, job["path"],
+                )
+                mono16k = denoise_service.to_speech_mono(vocals, sr)
+                out_wav = OUTPUT_DIR / f"{job_id}_denoised.wav"
+                denoise_service.write_wav(vocals, sr, out_wav)
+                _touch_job(job_id, denoised_path=str(out_wav))
+            except Exception:
+                log.exception("Denoising failed")
+                raise HTTPException(500, "Denoising failed. Check the server log for details.")
+            whisper_source = mono16k
+            diarize_source = mono16k
+            job["pct"] = ds_end
+
+        ws_start, ws_end = ranges["whisper"]
+
+        def _whisper_cb(pct: int) -> None:
+            job["pct"] = ws_start + int(pct * (ws_end - ws_start) / 100)
+
+        def _run_whisper():
+            return whisper_service.transcribe(
+                whisper_source,
+                progress_cb=_whisper_cb,
+                model_size=req.model_size,
+                initial_prompt=req.initial_prompt,
             )
-        except Exception:
-            log.exception("Denoising failed")
-            raise HTTPException(500, "Denoising failed. Check the server log for details.")
-        _touch_job(job_id, denoised_path=audio_source)
-        job["pct"] = ds_end
 
-    # ── Whisper transcription ─────────────────────────────────────────────────
-    ws_start, ws_end = ranges["whisper"]
+        captions = await loop.run_in_executor(None, _run_whisper)
 
-    def _whisper_cb(pct: int) -> None:
-        job["pct"] = ws_start + int(pct * (ws_end - ws_start) / 100)
+        speakers: list[str] = []
+        if req.diarization.enabled:
+            job["pct"] = ranges["diarize"][0]
 
-    def _run_whisper():
-        return whisper_service.transcribe(
-            audio_source,
-            progress_cb=_whisper_cb,
-            model_size=req.model_size,
-            initial_prompt=req.initial_prompt,
-        )
+            def _run_diarize():
+                turns = diarize_service.diarize(
+                    diarize_source,
+                    hf_token=req.diarization.hf_token,
+                    num_speakers=req.diarization.num_speakers,
+                )
+                labeled = diarize_service.assign_speakers(captions, turns)
+                unique_speakers = sorted({c.speaker for c in labeled if c.speaker})
+                return labeled, unique_speakers
 
-    captions = await loop.run_in_executor(None, _run_whisper)
-
-    # ── Optional: diarization (pyannote) ──────────────────────────────────────
-    speakers: list[str] = []
-    if req.diarization.enabled:
-        dz_start, _dz_end = ranges["diarize"]
-        job["pct"] = dz_start
-
-        def _run_diarize():
-            turns = diarize_service.diarize(
-                audio_source,
-                hf_token=req.diarization.hf_token,
-                num_speakers=req.diarization.num_speakers,
-            )
-            labeled = diarize_service.assign_speakers(captions, turns)
-            unique_speakers = sorted({c.speaker for c in labeled if c.speaker})
-            return labeled, unique_speakers
-
-        try:
-            captions, speakers = await loop.run_in_executor(None, _run_diarize)
-        except Exception:
-            log.exception("Diarization failed")
-            raise HTTPException(500, "Diarization failed. Check the server log for details.")
+            try:
+                captions, speakers = await loop.run_in_executor(None, _run_diarize)
+            except Exception:
+                log.exception("Diarization failed")
+                raise HTTPException(500, "Diarization failed. Check the server log for details.")
 
     _touch_job(job_id, captions=captions, speakers=speakers, status="done", pct=100)
     return TranscriptionResponse(job_id=job_id, captions=captions, speakers=speakers)
@@ -315,8 +329,6 @@ async def transcribe_progress(job_id: str):
     return StreamingResponse(_poll_sse(get_state), media_type="text/event-stream")
 
 
-# ── Script alignment ───────────────────────────────────────────────────────────
-
 @router.post("/align/{job_id}", response_model=list[AlignmentResult])
 async def align_script(job_id: str, script_file: UploadFile = File(...)):
     job = _jobs.get(job_id)
@@ -332,8 +344,6 @@ async def align_script(job_id: str, script_file: UploadFile = File(...)):
     script_text = content.decode("utf-8", errors="ignore")
     return alignment_service.align(captions, script_text)
 
-
-# ── Burn captions into video ───────────────────────────────────────────────────
 
 _UUID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
 
@@ -356,8 +366,6 @@ async def burn(req: BurnRequest):
     _touch_job(req.job_id, output_path=out_path)
     return FileResponse(out_path, media_type="video/mp4", filename="captioned.mp4")
 
-
-# ── Export SRT / VTT ──────────────────────────────────────────────────────────
 
 @router.post("/export")
 async def export_captions(req: ExportRequest):

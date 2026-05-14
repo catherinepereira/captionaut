@@ -37,7 +37,6 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
     else localStorage.removeItem(HF_TOKEN_STORAGE_KEY)
   }
 
-  // Restore token from localStorage on mount
   useEffect(() => {
     if (config.diarization.hfToken) return
     const saved = localStorage.getItem(HF_TOKEN_STORAGE_KEY)

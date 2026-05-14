@@ -1,12 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
-import sys
-import os
 from pathlib import Path
 import whisper as _whisper
-import torch as _torch
 
 WHISPER_PKG = Path(_whisper.__file__).parent
-TORCH_PKG   = Path(_torch.__file__).parent
 
 block_cipher = None
 
@@ -18,6 +14,7 @@ added_datas = [
 ]
 
 hidden_imports = [
+    # Whisper + tokenizer
     "whisper",
     "whisper.audio",
     "whisper.decoding",
@@ -29,9 +26,7 @@ hidden_imports = [
     "tiktoken.model",
     "tiktoken_ext",
     "tiktoken_ext.openai_public",
-    "torch",
-    "torch._C",
-    "torch._ops",
+    # FastAPI / uvicorn / starlette stack
     "uvicorn",
     "uvicorn.logging",
     "uvicorn.loops",
@@ -48,15 +43,25 @@ hidden_imports = [
     "fastapi",
     "multipart",
     "aiofiles",
-    "difflib",
-    "h11",
     "anyio",
     "anyio._backends._asyncio",
     "starlette",
     "starlette.staticfiles",
     "starlette.routing",
-    "email.mime.text",
-    "email.mime.multipart",
+    "h11",
+    # Captionaut services and their optional deps. pyannote and demucs are
+    # imported lazily inside the service modules; PyInstaller needs the
+    # entrypoints declared here so the analysis picks them up.
+    "backend.services.diarize_service",
+    "backend.services.denoise_service",
+    "pyannote.audio",
+    "pyannote.audio.pipelines",
+    "pyannote.audio.pipelines.speaker_diarization",
+    "demucs",
+    "demucs.apply",
+    "demucs.pretrained",
+    "demucs.separate",
+    "soundfile",
 ]
 
 a = Analysis(
@@ -69,6 +74,10 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=["matplotlib", "PIL", "IPython", "jupyter", "numba", "llvmlite"],
+    # torch.distributed.config does `inspect.getsource(...)` at import time,
+    # which fails when source files are stripped. Keep .py source alongside
+    # compiled .pyc for torch so introspection works.
+    module_collection_mode={"torch": "pyz+py"},
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

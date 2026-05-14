@@ -2,7 +2,6 @@
   min-height: 100vh;
 }
 
-/* ── Header ── */
 .header {
   display: flex;
   align-items: center;
@@ -63,7 +62,6 @@
   color: var(--purple-light);
 }
 
-/* ── Hero / Landing ── */
 .hero {
   max-width: 680px;
   margin: 0 auto;
@@ -120,7 +118,6 @@
   color: var(--text-muted);
 }
 
-/* ── Busy / Loading ── */
 .busy {
   display: flex;
   flex-direction: column;
@@ -198,7 +195,6 @@
   color: var(--text-muted);
 }
 
-/* ── Editor layout ── */
 .editor {
   display: grid;
   grid-template-columns: 1fr 400px;

@@ -1,11 +1,10 @@
 import argparse
 import multiprocessing
 import os
-import sys
 
 
 def main():
-    # Required for PyInstaller frozen bundles on macOS
+    # PyInstaller-frozen multiprocessing on macOS requires explicit spawn mode.
     multiprocessing.set_start_method("spawn", force=True)
 
     parser = argparse.ArgumentParser()
@@ -17,13 +16,12 @@ def main():
         os.environ["CAPTIONAUT_DATA_DIR"] = args.data_dir
 
     import uvicorn
-    from .config import BACKEND_HOST
-    uvicorn.run(
-        "backend.main:app",
-        host=BACKEND_HOST,
-        port=args.port,
-        log_level="warning",
-    )
+    # Use absolute imports and pass the app object directly: PyInstaller's
+    # frozen __main__ has no parent package context, and uvicorn's "module:attr"
+    # string importer doesn't see the bundled package layout.
+    from backend.config import BACKEND_HOST
+    from backend.main import app
+    uvicorn.run(app, host=BACKEND_HOST, port=args.port, log_level="warning")
 
 
 if __name__ == "__main__":

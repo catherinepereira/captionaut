@@ -6,12 +6,12 @@ directories:
   output: release/
   buildResources: build/
 
-# JS files included in the Electron package
 files:
   - electron/dist/**
   - package.json
 
-# Binaries placed in app's resources/ dir (process.resourcesPath)
+# extraResources land at process.resourcesPath, outside the asar archive,
+# which is required for native binaries to remain executable.
 extraResources:
   - from: dist/captionaut-backend/
     to: sidecar/
@@ -28,7 +28,7 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: build/icon.ico
+  icon: build/icon.png
 
 nsis:
   oneClick: false
@@ -42,7 +42,7 @@ mac:
       arch:
         - x64
         - arm64
-  icon: build/icon.icns
+  icon: build/icon.png
   category: public.app-category.video
   hardenedRuntime: true
   gatekeeperAssess: false
