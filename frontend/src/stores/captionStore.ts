@@ -80,6 +80,14 @@ type AppState =
 
 const HISTORY_LIMIT = 100
 
+export interface Toast {
+  id: number
+  kind: 'info' | 'warn' | 'error'
+  message: string
+}
+
+let _toastSeq = 0
+
 interface CaptionStore {
   state: AppState
   jobId: string | null
@@ -97,6 +105,7 @@ interface CaptionStore {
   transcribeProgress: number
   transcribeConfig: TranscribeConfig
   burnStyle: BurnStyle
+  toasts: Toast[]
 
   setVideoFile: (file: File) => void
   setJobId: (id: string) => void
@@ -116,6 +125,8 @@ interface CaptionStore {
   replaceCaptions: (next: Caption[]) => void  // history-aware mutator for bulk ops
   undo: () => void
   redo: () => void
+  pushToast: (kind: Toast['kind'], message: string) => number
+  dismissToast: (id: number) => void
   reset: () => void
 }
 
@@ -142,6 +153,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   transcribeProgress: 0,
   transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
   burnStyle: DEFAULT_BURN_STYLE,
+  toasts: [],
 
   setVideoFile: (file) => set((store) => {
     if (store.videoUrl) URL.revokeObjectURL(store.videoUrl)
@@ -212,6 +224,12 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       },
     })),
   setBurnStyle: (patch) => set((store) => ({ burnStyle: { ...store.burnStyle, ...patch } })),
+  pushToast: (kind, message) => {
+    const id = ++_toastSeq
+    set((store) => ({ toasts: [...store.toasts, { id, kind, message }] }))
+    return id
+  },
+  dismissToast: (id) => set((store) => ({ toasts: store.toasts.filter((t) => t.id !== id) })),
   reset: () => set((store) => {
     if (store.videoUrl) URL.revokeObjectURL(store.videoUrl)
     return {

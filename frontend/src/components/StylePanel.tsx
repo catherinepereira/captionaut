@@ -1,3 +1,4 @@
+import { useEffect, useId } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
 import styles from './StylePanel.module.css'
 
@@ -24,14 +25,33 @@ const POSITION_OPTIONS: { value: 'top' | 'middle' | 'bottom'; label: string }[] 
 
 export function StylePanel({ open, onClose }: Props) {
   const { burnStyle, setBurnStyle } = useCaptionStore()
+  const titleId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
   if (!open) return null
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
-      <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={styles.header}>
-          <h3 className={styles.title}>Caption style</h3>
-          <button className={styles.close} onClick={onClose} aria-label="Close">×</button>
+          <h3 id={titleId} className={styles.title}>Caption style</h3>
+          <button className={styles.close} onClick={onClose} aria-label="Close caption style panel">
+            <span aria-hidden="true">×</span>
+          </button>
         </div>
 
         <div className={styles.preview}>
@@ -96,11 +116,18 @@ export function StylePanel({ open, onClose }: Props) {
         </div>
 
         <div className={styles.row}>
-          <label className={styles.label}>Position</label>
-          <div className={styles.positionGroup}>
+          <span id={`${titleId}-pos`} className={styles.label}>Position</span>
+          <div
+            className={styles.positionGroup}
+            role="radiogroup"
+            aria-labelledby={`${titleId}-pos`}
+          >
             {POSITION_OPTIONS.map(({ value, label }) => (
               <button
                 key={value}
+                type="button"
+                role="radio"
+                aria-checked={burnStyle.position === value}
                 className={`${styles.posBtn} ${burnStyle.position === value ? styles.posBtnActive : ''}`}
                 onClick={() => setBurnStyle({ position: value })}
               >

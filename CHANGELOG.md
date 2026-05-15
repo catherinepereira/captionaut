@@ -20,9 +20,29 @@ release; until then we track unreleased work under **[Unreleased]**.
 - Backend test suite: 20 endpoint + service tests (pytest + FastAPI TestClient).
 - Frontend test suite: 26 unit tests for caption-editing utilities and
   persistence helpers (Vitest).
+- GPU enforcement: backend exits at startup on CPU-only systems with a clear
+  message. `--allow-cpu` flag for test and CI use.
+- Bootstrap scripts (`start.sh`, `start.ps1`) that verify GPU and prereqs,
+  install dependencies on first run, and start both servers.
+- Full-stack `Dockerfile` (multi-stage: Node build for the frontend, CUDA Python
+  for the backend) and `docker-compose.yml`. `docker compose up` serves the
+  entire app at `:8010`.
+- `LICENSE` (MIT), `CONTRIBUTING.md`, `.env.example`, and `.editorconfig`.
+- `docs/dev/configuration.md` covering every config file in the repo.
 
 ### Changed
 - Caption editor surfaces undo / redo controls in the panel header.
+- Documentation restructured. `docs/dev/` holds engineering documentation
+  (architecture, build log, release procedure, configuration). `docs/blog/`
+  holds narrative posts. `CHANGELOG.md` moved to repo root.
+- README rewritten for an open-source audience.
+
+### Removed
+- `start-backend.ps1` and `start-frontend.ps1` (replaced by the bootstrap
+  scripts).
+- Empty placeholder directories (`backend/uploads/`, `backend/outputs/`,
+  `resources/win/`, `resources/mac/`). The backend recreates the data dirs
+  on startup; CI populates the resources dirs at build time.
 
 ### Internal
 - Added `frontend/src/utils/captions.ts` (pure caption-editing helpers shared

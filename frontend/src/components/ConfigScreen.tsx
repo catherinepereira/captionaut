@@ -53,12 +53,15 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
         <h2 className={styles.title}>Configure transcription</h2>
         {videoFile && <p className={styles.filename}>{videoFile.name}</p>}
 
-        <section className={styles.section}>
-          <label className={styles.label}>Model</label>
-          <div className={styles.modelGrid}>
+        <section className={styles.section} aria-labelledby="model-label">
+          <span id="model-label" className={styles.label}>Model</span>
+          <div className={styles.modelGrid} role="radiogroup" aria-labelledby="model-label">
             {MODEL_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={config.modelSize === opt.value}
                 className={`${styles.modelOption} ${config.modelSize === opt.value ? styles.modelOptionActive : ''}`}
                 onClick={() => setConfig({ modelSize: opt.value })}
               >

@@ -90,6 +90,17 @@ export async function checkModelStatus(): Promise<{ downloaded: boolean; size_mb
   return res.json()
 }
 
+export interface Capabilities {
+  pyannote_cached: boolean
+  demucs_cached: boolean
+}
+
+export async function checkCapabilities(): Promise<Capabilities> {
+  const res = await fetch(`${BASE}/capabilities`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
 interface ProgressEvent {
   status?: 'downloading' | 'done' | 'already_downloaded' | 'error'
   percent?: number

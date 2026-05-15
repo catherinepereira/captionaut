@@ -17,7 +17,7 @@ export function SpeakerPanel() {
       <div className={styles.list}>
         {speakers.map((label) => (
           <div key={label} className={styles.row}>
-            <label className={styles.swatchLabel}>
+            <label className={styles.swatchLabel} aria-label={`Color for ${label}`}>
               <input
                 type="color"
                 value={speakerColors[label] ?? '#7c5cfc'}
@@ -27,6 +27,7 @@ export function SpeakerPanel() {
               <span
                 className={styles.swatch}
                 style={{ background: speakerColors[label] ?? '#7c5cfc' }}
+                aria-hidden="true"
               />
             </label>
             <span className={styles.name}>{label}</span>

@@ -193,6 +193,12 @@
   background: var(--bg-input);
 }
 
+.row:focus-visible {
+  background: var(--bg-input);
+  outline: 2px solid var(--purple);
+  outline-offset: -2px;
+}
+
 .active {
   background: #1e1a40;
   border-left: 3px solid var(--purple);
@@ -219,8 +225,11 @@
   cursor: pointer;
 }
 
-.time:hover {
+.time:hover,
+.time:focus-visible {
   color: var(--purple-light);
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
 }
 
 .arrow {
@@ -247,8 +256,12 @@
   cursor: text;
 }
 
-.text:hover {
+.text:hover,
+.text:focus-visible {
   color: var(--purple-light);
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .textArea {

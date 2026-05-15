@@ -72,18 +72,32 @@ const CaptionRow = memo(function CaptionRow({
       ? { borderLeft: `3px solid ${speakerColor}` }
       : undefined
 
+  const onKey = (e: React.KeyboardEvent) => {
+    if (editingField !== null) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onSeek(caption.start)
+    }
+  }
+
   return (
     <div
       ref={(el) => registerRef(caption.id, el)}
       className={rowClass}
       style={rowStyle}
+      role="button"
+      tabIndex={0}
+      aria-label={`Caption ${caption.id + 1} at ${formatTime(caption.start)}. Press Enter to jump.`}
+      aria-current={isActive ? 'true' : undefined}
       onClick={() => editingField === null && onSeek(caption.start)}
+      onKeyDown={onKey}
       title="Click to jump to this caption · checkbox to select for bulk ops"
     >
       <input
         type="checkbox"
         className={styles.checkbox}
         checked={isSelected}
+        aria-label={`Select caption ${caption.id + 1}`}
         onClick={(e) => { e.stopPropagation(); onToggleSelect(caption.id, e) }}
         onChange={() => { /* handled in onClick to access shiftKey */ }}
       />
@@ -101,27 +115,47 @@ const CaptionRow = memo(function CaptionRow({
             className={styles.timeInput}
             value={draft}
             autoFocus
+            aria-label="Start time"
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => e.key === 'Enter' && commit()}
           />
         ) : (
-          <span className={styles.time} onClick={(e) => startEdit('start', e)}>
+          <span
+            className={styles.time}
+            role="button"
+            tabIndex={0}
+            aria-label={`Edit start time, currently ${formatTime(caption.start)}`}
+            onClick={(e) => startEdit('start', e)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.stopPropagation(); startEdit('start', e as unknown as React.MouseEvent) }
+            }}
+          >
             {formatTime(caption.start)}
           </span>
         )}
-        <span className={styles.arrow}>→</span>
+        <span className={styles.arrow} aria-hidden="true">→</span>
         {editingField === 'end' ? (
           <input
             className={styles.timeInput}
             value={draft}
             autoFocus
+            aria-label="End time"
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => e.key === 'Enter' && commit()}
           />
         ) : (
-          <span className={styles.time} onClick={(e) => startEdit('end', e)}>
+          <span
+            className={styles.time}
+            role="button"
+            tabIndex={0}
+            aria-label={`Edit end time, currently ${formatTime(caption.end)}`}
+            onClick={(e) => startEdit('end', e)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.stopPropagation(); startEdit('end', e as unknown as React.MouseEvent) }
+            }}
+          >
             {formatTime(caption.end)}
           </span>
         )}
@@ -133,12 +167,22 @@ const CaptionRow = memo(function CaptionRow({
           value={draft}
           autoFocus
           rows={2}
+          aria-label="Caption text"
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit() } }}
         />
       ) : (
-        <p className={styles.text} onClick={(e) => startEdit('text', e)}>
+        <p
+          className={styles.text}
+          role="button"
+          tabIndex={0}
+          aria-label={`Edit caption text: ${caption.text}`}
+          onClick={(e) => startEdit('text', e)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.stopPropagation(); startEdit('text', e as unknown as React.MouseEvent) }
+          }}
+        >
           {caption.text}
         </p>
       )}
@@ -300,13 +344,15 @@ export function CaptionEditor() {
           onClick={undo}
           disabled={historyDepth === 0}
           title="Undo (Ctrl/⌘+Z)"
-        >↶</button>
+          aria-label="Undo"
+        ><span aria-hidden="true">↶</span></button>
         <button
           className={styles.historyBtn}
           onClick={redo}
           disabled={futureDepth === 0}
           title="Redo (Ctrl/⌘+Shift+Z)"
-        >↷</button>
+          aria-label="Redo"
+        ><span aria-hidden="true">↷</span></button>
       </div>
 
       {hasSelection && (
@@ -318,11 +364,16 @@ export function CaptionEditor() {
           <button className={styles.bulkBtn} onClick={mergeNow} disabled={selected.size < 2} title="Merge selected into one caption">Merge</button>
           <button className={styles.bulkBtn} onClick={splitAtPlayhead} disabled={!canSplit} title="Split selected caption at the playhead">Split</button>
           <button className={`${styles.bulkBtn} ${styles.bulkDanger}`} onClick={deleteNow} title="Delete selected">Delete</button>
-          <button className={styles.bulkClose} onClick={clearSelection} title="Clear selection">×</button>
+          <button
+            className={styles.bulkClose}
+            onClick={clearSelection}
+            title="Clear selection"
+            aria-label="Clear selection"
+          ><span aria-hidden="true">×</span></button>
         </div>
       )}
 
-      <div className={styles.list}>
+      <div className={styles.list} role="list" aria-label="Captions">
         {captions.map((cap) => (
           <CaptionRow
             key={cap.id}

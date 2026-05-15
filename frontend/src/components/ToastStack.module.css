@@ -1,0 +1,67 @@
+.stack {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  z-index: 100;
+  pointer-events: none;
+  max-width: min(400px, calc(100vw - 48px));
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #1d1a2e;
+  border: 1px solid #2d2849;
+  color: #e8e4ff;
+  font-size: 13.5px;
+  line-height: 1.5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  animation: slideIn 180ms ease-out;
+}
+
+.info {
+  border-left: 3px solid #7c5cfc;
+}
+
+.warn {
+  border-left: 3px solid #ffa726;
+}
+
+.error {
+  border-left: 3px solid #e05c7a;
+}
+
+.message {
+  flex: 1;
+  margin: 0;
+}
+
+.close {
+  background: transparent;
+  border: none;
+  color: #7a74a0;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.close:hover,
+.close:focus-visible {
+  color: #e8e4ff;
+  outline: 2px solid #7c5cfc;
+  outline-offset: 2px;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
