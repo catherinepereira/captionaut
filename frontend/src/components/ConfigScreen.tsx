@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useCaptionStore, type ModelSize } from '../stores/captionStore'
+import { loadSettings, saveSettings } from '../utils/settings'
 import styles from './ConfigScreen.module.css'
-
-const HF_TOKEN_STORAGE_KEY = 'captionaut.hfToken'
 
 interface ModelOption {
   value: ModelSize
@@ -33,14 +32,18 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
 
   const onHfTokenChange = (token: string) => {
     setDiarization({ hfToken: token })
-    if (token) localStorage.setItem(HF_TOKEN_STORAGE_KEY, token)
-    else localStorage.removeItem(HF_TOKEN_STORAGE_KEY)
+    saveSettings({ ...loadSettings(), hfToken: token })
   }
 
+  // Hydrate from saved settings on mount (token, default model size).
   useEffect(() => {
-    if (config.diarization.hfToken) return
-    const saved = localStorage.getItem(HF_TOKEN_STORAGE_KEY)
-    if (saved) setDiarization({ hfToken: saved })
+    const s = loadSettings()
+    if (!config.diarization.hfToken && s.hfToken) {
+      setDiarization({ hfToken: s.hfToken })
+    }
+    if (config.modelSize === 'base' && s.defaultModelSize !== 'base') {
+      setConfig({ modelSize: s.defaultModelSize })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -130,7 +133,7 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
             <span className={styles.toggleLabel}>Denoise audio (Demucs vocal isolation)</span>
           </label>
           <p className={styles.hint}>
-            Recommended only for noisy videos — isolates vocals before transcription.
+            Recommended only for noisy videos. Isolates vocals before transcription.
             Significantly slower; downloads a ~250 MB model on first use.
           </p>
         </section>

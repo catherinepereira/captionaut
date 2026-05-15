@@ -5,6 +5,7 @@ torchaudio → torchcodec path that's incompatible with FFmpeg 8 on Windows.
 Returns vocals as a numpy array so downstream stages (Whisper, pyannote) don't
 re-decode the same audio.
 """
+
 from __future__ import annotations
 
 import logging
@@ -34,6 +35,7 @@ def _load_model():
     if _model is not None:
         return _model
     from demucs.pretrained import get_model
+
     m = get_model(DEMUCS_MODEL_NAME)
     m.to(_device())
     m.eval()
@@ -45,12 +47,19 @@ def decode_audio(input_path: str, target_sr: int, channels: int = 2) -> np.ndarr
     """Decode any input to float32 PCM at `target_sr` Hz, shape (channels, samples)."""
     cmd = [
         _ffmpeg(),
-        "-hide_banner", "-loglevel", "error",
-        "-i", input_path,
-        "-f", "f32le",
-        "-acodec", "pcm_f32le",
-        "-ac", str(channels),
-        "-ar", str(target_sr),
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        input_path,
+        "-f",
+        "f32le",
+        "-acodec",
+        "pcm_f32le",
+        "-ac",
+        str(channels),
+        "-ar",
+        str(target_sr),
         "-",
     ]
     proc = subprocess.run(
@@ -103,8 +112,8 @@ def write_wav(vocals: np.ndarray, sr: int, out_path: Path) -> str:
 def to_speech_mono(vocals: np.ndarray, sr: int) -> np.ndarray:
     """Downmix to mono and resample to SPEECH_SAMPLE_RATE.
 
-    Linear interpolation is adequate for speech — Whisper does its own
-    re-mel-spectrogram afterwards.
+    Linear interpolation is adequate for speech; Whisper re-computes its
+    own mel-spectrogram afterwards.
     """
     mono = vocals.mean(axis=0) if vocals.ndim == 2 else vocals
     if sr == SPEECH_SAMPLE_RATE:

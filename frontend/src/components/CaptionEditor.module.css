@@ -6,6 +6,26 @@
   display: flex;
   flex-direction: column;
   max-height: 500px;
+  position: relative;
+}
+
+.dropTarget {
+  border-color: var(--purple);
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(124, 92, 252, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: 12px;
 }
 
 .header {
@@ -27,6 +47,120 @@
 .count {
   font-size: 12px;
   color: var(--text-dim);
+}
+
+.headerSpacer {
+  flex: 1;
+}
+
+.historyBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 14px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 4px;
+  line-height: 1;
+}
+
+.historyBtn:hover:not(:disabled) {
+  border-color: var(--purple-light);
+  color: var(--purple-light);
+}
+
+.historyBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bulkBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border);
+}
+
+.bulkCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple-light);
+}
+
+.bulkSpacer {
+  flex: 1;
+}
+
+.bulkBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bulkBtn:hover:not(:disabled) {
+  border-color: var(--purple-light);
+  color: var(--purple-light);
+}
+
+.bulkBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bulkDanger {
+  color: var(--red);
+}
+
+.bulkDanger:hover:not(:disabled) {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(224, 92, 122, 0.1);
+}
+
+.bulkClose {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.bulkClose:hover {
+  color: var(--text);
+}
+
+.checkbox {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--purple);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.row:hover .checkbox,
+.checkbox:checked {
+  opacity: 1;
+}
+
+.selected {
+  background: rgba(124, 92, 252, 0.08);
 }
 
 .list {

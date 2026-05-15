@@ -25,7 +25,7 @@ function getSidecarPath(): string {
   const packed = path.join(resourcesDir, "sidecar", exeName);
   if (fs.existsSync(packed)) return packed;
 
-  // Dev fallback — PyInstaller one-dir output
+  // Dev fallback: PyInstaller one-dir output
   const dev = path.join(__dirname, "..", "dist", "captionaut-backend", exeName);
   if (fs.existsSync(dev)) return dev;
 
@@ -50,7 +50,7 @@ function getDataDir(): string {
   return dir;
 }
 
-// 120s default — the packaged PyInstaller bundle unpacks several GB to a
+// 120s default: the packaged PyInstaller bundle unpacks several GB to a
 // temp dir on first launch, which can take a minute on slower disks.
 async function waitForReady(port: number, maxMs = 120_000): Promise<void> {
   const deadline = Date.now() + maxMs;
@@ -107,7 +107,7 @@ export async function startSidecar(): Promise<number> {
 export function stopSidecar(): void {
   if (!sidecarProcess) return;
   if (process.platform === "win32") {
-    // Kill entire process tree — PyInstaller spawns children
+    // Kill entire process tree (PyInstaller spawns children)
     spawn("taskkill", ["/pid", String(sidecarProcess.pid!), "/f", "/t"], {
       windowsHide: true,
     });

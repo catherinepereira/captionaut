@@ -1,0 +1,17 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["build", "dist", "release", "frontend"]
+
+[tool.ruff.lint]
+# Conservative ruleset: catch real bugs (pyflakes/pycodestyle) plus a handful
+# of obviously-useful style rules. Avoid the opinionated import-sort + naming
+# rules until the codebase has tests for everything they'd touch.
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+  "E501",  # line length is handled by the formatter
+  "B008",  # FastAPI `Depends(...)` is fine as a default arg
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/*" = ["F401"]  # fixtures imported via conftest.py

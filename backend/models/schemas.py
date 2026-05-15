@@ -1,5 +1,6 @@
+from typing import Literal
+
 from pydantic import BaseModel
-from typing import Literal, Optional
 
 
 class Caption(BaseModel):
@@ -7,7 +8,7 @@ class Caption(BaseModel):
     start: float
     end: float
     text: str
-    speaker: Optional[str] = None
+    speaker: str | None = None
 
 
 ModelSize = Literal["tiny", "base", "small", "medium", "large"]
@@ -15,13 +16,13 @@ ModelSize = Literal["tiny", "base", "small", "medium", "large"]
 
 class DiarizationOptions(BaseModel):
     enabled: bool = False
-    hf_token: Optional[str] = None
-    num_speakers: Optional[int] = None
+    hf_token: str | None = None
+    num_speakers: int | None = None
 
 
 class TranscribeRequest(BaseModel):
     model_size: ModelSize = "base"
-    initial_prompt: Optional[str] = None
+    initial_prompt: str | None = None
     diarization: DiarizationOptions = DiarizationOptions()
     denoise: bool = False
 
@@ -35,7 +36,7 @@ class TranscriptionResponse(BaseModel):
 class AlignmentResult(BaseModel):
     caption_id: int
     matched: bool
-    script_text: Optional[str] = None
+    script_text: str | None = None
     similarity: float
 
 
@@ -53,8 +54,8 @@ class BurnStyle(BaseModel):
 class BurnRequest(BaseModel):
     job_id: str
     captions: list[Caption]
-    style: Optional[BurnStyle] = None
-    speaker_colors: Optional[dict[str, str]] = None
+    style: BurnStyle | None = None
+    speaker_colors: dict[str, str] | None = None
 
 
 class ExportRequest(BaseModel):

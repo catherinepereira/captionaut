@@ -4,21 +4,21 @@ Given an audio/video file, returns a list of (start_s, end_s, speaker_label) tur
 Maps each Whisper caption to the speaker whose turn overlaps it most.
 
 Audio is pre-decoded via FFmpeg (see `denoise_service.decode_audio`) and passed
-to pyannote as an in-memory waveform — this side-steps pyannote's default
+to pyannote as an in-memory waveform. This sidesteps pyannote's default
 torchcodec-based file loader, which is currently broken on FFmpeg 8.
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Optional, Union
 
 import numpy as np
 import torch
 
 from ..models.schemas import Caption
-from .denoise_service import decode_audio, SPEECH_SAMPLE_RATE
+from .denoise_service import SPEECH_SAMPLE_RATE, decode_audio
 
-AudioInput = Union[str, np.ndarray]
+AudioInput = str | np.ndarray
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ def _load_pipeline(hf_token: str):
     if _pipeline is not None:
         return _pipeline
     from pyannote.audio import Pipeline
+
     pipe = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
         token=hf_token,
@@ -54,7 +55,7 @@ def diarize(
     source: AudioInput,
     hf_token: str,
     *,
-    num_speakers: Optional[int] = None,
+    num_speakers: int | None = None,
 ) -> list[tuple[float, float, str]]:
     """Run pyannote diarization. Returns [(start_s, end_s, speaker_label), ...].
 
@@ -82,14 +83,16 @@ def diarize(
     return turns
 
 
-def assign_speakers(captions: list[Caption], turns: list[tuple[float, float, str]]) -> list[Caption]:
+def assign_speakers(
+    captions: list[Caption], turns: list[tuple[float, float, str]]
+) -> list[Caption]:
     """Label each caption with the speaker whose turn overlaps it most."""
     if not turns:
         return captions
 
     out: list[Caption] = []
     for cap in captions:
-        best_label: Optional[str] = None
+        best_label: str | None = None
         best_overlap = 0.0
         for ts, te, label in turns:
             overlap = min(cap.end, te) - max(cap.start, ts)

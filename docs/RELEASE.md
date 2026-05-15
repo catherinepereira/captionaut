@@ -6,7 +6,7 @@ the host environment. CI on a clean GitHub-hosted runner is the supported path.
 ## Prerequisites (one-time)
 
 1. **Push the repo to GitHub.**
-2. The default `GITHUB_TOKEN` is sufficient — `.github/workflows/release.yml`
+2. The default `GITHUB_TOKEN` is sufficient - `.github/workflows/release.yml`
    uses it via `${{ secrets.GITHUB_TOKEN }}`. No additional secrets needed for
    unsigned builds.
 
@@ -47,13 +47,13 @@ Total runtime is **~30 minutes per platform** (PyInstaller + electron-builder).
 ## Known gotchas
 
 - **macOS unsigned**: `dmg.sign: false` in `electron-builder.yml`. First-run
-  users will see "unidentified developer" — they need to right-click → Open.
+  users will see "unidentified developer" - they need to right-click → Open.
   Fix: set up an Apple Developer ID, add `CSC_LINK` / `CSC_KEY_PASSWORD`
   secrets, switch to `sign: true`.
 - **macOS arm64 cross-compile**: The `macos-13` runner is Intel. arm64 binaries
   built there work via Rosetta but won't be native. Fix: add a `macos-14`
   runner (arm64) and build separately, or use `lipo` to make a universal binary.
-- **Windows unsigned**: Same — SmartScreen warning. Fix: get a code-signing
+- **Windows unsigned**: Same - SmartScreen warning. Fix: get a code-signing
   certificate; add `CSC_LINK` / `CSC_KEY_PASSWORD`.
 - **First-run sidecar startup is slow**: PyInstaller unpacks ~4 GB to a temp
   dir the first time the user launches the app. `waitForReady()` in
@@ -67,7 +67,7 @@ The full PyInstaller+electron-builder loop is painful locally but workable:
 # 1. Frontend
 cd frontend; npm run build; cd ..
 
-# 2. Sidecar (5–10 min cold)
+# 2. Sidecar (5-10 min cold)
 python -m PyInstaller captionaut.spec --noconfirm
 
 # 3. Sidecar smoke test

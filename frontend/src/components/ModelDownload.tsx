@@ -74,7 +74,7 @@ export function ModelDownload({ onReady }: Props) {
         )}
 
         <p className={styles.privacy}>
-          Everything stays on your machine — no data ever leaves your computer.
+          Everything stays on your machine. No data ever leaves your computer.
         </p>
       </div>
     </div>

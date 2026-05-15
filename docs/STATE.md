@@ -1,4 +1,4 @@
-# Captionaut — Current State
+# Captionaut - Current State
 
 ## Pipeline
 
@@ -33,7 +33,7 @@
                                           ┌────────────────────────────┐
                                           │ export .srt / .vtt         │
                                           │ burn into video (FFmpeg)   │
-                                          │ — per-speaker colors       │
+                                          │ - per-speaker colors       │
                                           └────────────────────────────┘
 ```
 
@@ -82,7 +82,7 @@ backend/
 | GET  | `/api/download-model`               | SSE: download base model with progress |
 | POST | `/api/upload`                       | Multipart upload, ext allowlist, 2 GB cap, returns `job_id` |
 | POST | `/api/transcribe/{job_id}`          | Run pipeline (denoise → Whisper → diarize) |
-| GET  | `/api/transcribe-progress/{job_id}` | SSE: live progress 0–100 |
+| GET  | `/api/transcribe-progress/{job_id}` | SSE: live progress 0-100 |
 | POST | `/api/align/{job_id}`               | Upload script → returns mismatch results |
 | POST | `/api/burn`                         | Render captioned MP4 via FFmpeg + ASS |
 | POST | `/api/export`                       | Return `.srt` or `.vtt` text |
@@ -93,20 +93,20 @@ A bounded `OrderedDict` of 50 jobs. Each job tracks `path`, `output_path`, `deno
 
 ### Pipeline stages and progress allocation
 
-`_progress_ranges(denoise: bool, diarize: bool)` splits the 0–100% bar proportionally:
+`_progress_ranges(denoise: bool, diarize: bool)` splits the 0-100% bar proportionally:
 
 | Stages enabled | Denoise | Whisper | Diarize |
 |---|---|---|---|
-| Whisper only        |        | 0–100  |       |
-| Whisper + denoise   | 0–25   | 25–100 |       |
-| Whisper + diarize   |        | 0–75   | 75–100 |
-| All three           | 0–20   | 20–80  | 80–100 |
+| Whisper only        |        | 0-100  |       |
+| Whisper + denoise   | 0-25   | 25-100 |       |
+| Whisper + diarize   |        | 0-75   | 75-100 |
+| All three           | 0-20   | 20-80  | 80-100 |
 
 Only Whisper has live progress ticks; the other two jump to their stage start.
 
 ### The torchcodec workaround
 
-PyTorch 2.11 ships with `torchcodec` that fails to load against FFmpeg 8 shared libraries on Windows (`WinError 127` — ABI mismatch). This breaks both Demucs's `torchaudio.save` and pyannote's default file loader.
+PyTorch 2.11 ships with `torchcodec` that fails to load against FFmpeg 8 shared libraries on Windows (`WinError 127` - ABI mismatch). This breaks both Demucs's `torchaudio.save` and pyannote's default file loader.
 
 We side-step it everywhere: `denoise_service.decode_audio()` shells out to `ffmpeg` to produce raw PCM → numpy. Demucs writes vocals via `soundfile` (libsndfile, no torchcodec). Pyannote is given a pre-loaded waveform tensor instead of a file path.
 
@@ -152,7 +152,7 @@ idle ──(drop video)──▶ uploading ──▶ configuring
 
 - All store consumers use **selectors** (`useCaptionStore(s => s.captions)`) instead of pulling the whole store
 - `mismatchedIds` and `activeId` are `useMemo`-cached
-- Store setters have **no-op guards** — `setCurrentTime(t)` returns the unchanged store if `t === currentTime`
+- Store setters have **no-op guards** - `setCurrentTime(t)` returns the unchanged store if `t === currentTime`
 - `streamProgress()` is one shared SSE helper used by transcription progress and model download
 
 ## Packaging (in progress)
@@ -167,7 +167,7 @@ build/entitlements.mac.plist # hardened-runtime + JIT exceptions for PyTorch
 .github/workflows/release.yml # CI: parallel Windows + Mac builds on tag push
 ```
 
-PyInstaller hangs locally during `collect_submodules("torch")` — too much memory pressure on a dev machine. CI runners (clean env, more RAM) are the expected build path.
+PyInstaller hangs locally during `collect_submodules("torch")` - too much memory pressure on a dev machine. CI runners (clean env, more RAM) are the expected build path.
 
 ## Security posture
 
@@ -191,5 +191,5 @@ PyInstaller hangs locally during `collect_submodules("torch")` — too much memo
 
 ## What's running locally right now
 
-- Backend: `http://127.0.0.1:8010` — `python -m backend --port 8010`
-- Frontend: `http://localhost:5200` — `cd frontend && npm run dev` (proxies `/api` → backend)
+- Backend: `http://127.0.0.1:8010` - `python -m backend --port 8010`
+- Frontend: `http://localhost:5200` - `cd frontend && npm run dev` (proxies `/api` → backend)

@@ -1,7 +1,7 @@
 {
   "name": "captionaut",
   "version": "1.0.0",
-  "description": "Local-first video captioning — transcribe, edit, and burn captions",
+  "description": "Local-first video captioning: transcribe, edit, and burn captions",
   "main": "electron/dist/main.js",
   "private": true,
   "scripts": {

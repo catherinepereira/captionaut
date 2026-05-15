@@ -78,12 +78,16 @@ type AppState =
   | 'editing'
   | 'burning'
 
+const HISTORY_LIMIT = 100
+
 interface CaptionStore {
   state: AppState
   jobId: string | null
   videoFile: File | null
   videoUrl: string | null
   captions: Caption[]
+  history: Caption[][]
+  future: Caption[][]
   alignment: AlignmentResult[]
   speakers: string[]                  // detected labels, e.g. "SPEAKER_00"
   speakerColors: Record<string, string>
@@ -109,6 +113,9 @@ interface CaptionStore {
   setTranscribeConfig: (patch: Partial<TranscribeConfig>) => void
   setDiarizationConfig: (patch: Partial<DiarizationConfig>) => void
   setBurnStyle: (patch: Partial<BurnStyle>) => void
+  replaceCaptions: (next: Caption[]) => void  // history-aware mutator for bulk ops
+  undo: () => void
+  redo: () => void
   reset: () => void
 }
 
@@ -124,6 +131,8 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   videoFile: null,
   videoUrl: null,
   captions: [],
+  history: [],
+  future: [],
   alignment: [],
   speakers: [],
   speakerColors: {},
@@ -140,7 +149,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   }),
   setJobId: (id) => set({ jobId: id }),
   setState: (s) => set({ state: s }),
-  setCaptions: (captions) => set({ captions }),
+  // Initial load (after transcription / restore): replaces captions wholesale
+  // and resets the undo stack so the user starts from a clean slate.
+  setCaptions: (captions) => set({ captions, history: [], future: [] }),
   updateCaption: (id, patch) => set((store) => {
     let changed = false
     const next = store.captions.map((c) => {
@@ -157,7 +168,32 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       changed = true
       return merged
     })
-    return changed ? { captions: next } : store
+    if (!changed) return store
+    const history = [...store.history, store.captions].slice(-HISTORY_LIMIT)
+    return { captions: next, history, future: [] }
+  }),
+  replaceCaptions: (next) => set((store) => {
+    if (next === store.captions) return store
+    const history = [...store.history, store.captions].slice(-HISTORY_LIMIT)
+    return { captions: next, history, future: [] }
+  }),
+  undo: () => set((store) => {
+    if (store.history.length === 0) return store
+    const prev = store.history[store.history.length - 1]
+    return {
+      captions: prev,
+      history: store.history.slice(0, -1),
+      future: [...store.future, store.captions],
+    }
+  }),
+  redo: () => set((store) => {
+    if (store.future.length === 0) return store
+    const next = store.future[store.future.length - 1]
+    return {
+      captions: next,
+      history: [...store.history, store.captions],
+      future: store.future.slice(0, -1),
+    }
   }),
   setAlignment: (results) => set({ alignment: results }),
   setSpeakers: (labels) => set({ speakers: labels, speakerColors: buildPalette(labels) }),
@@ -180,7 +216,8 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     if (store.videoUrl) URL.revokeObjectURL(store.videoUrl)
     return {
       state: 'idle', jobId: null, videoFile: null, videoUrl: null,
-      captions: [], alignment: [], speakers: [], speakerColors: {},
+      captions: [], history: [], future: [],
+      alignment: [], speakers: [], speakerColors: {},
       currentTime: 0, seekRequest: null, error: null,
       transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
     }

@@ -9,7 +9,7 @@ block_cipher = None
 added_datas = [
     # Whisper model assets (mel filters, tokenizer vocabs)
     (str(WHISPER_PKG / "assets"), "whisper/assets"),
-    # Built React frontend — served as static files by FastAPI
+    # Built React frontend, served as static files by FastAPI
     ("frontend/dist", "frontend/dist"),
 ]
 

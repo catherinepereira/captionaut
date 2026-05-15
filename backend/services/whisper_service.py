@@ -1,6 +1,6 @@
 import gc
 import sys
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 
 import numpy as np
 import torch
@@ -8,7 +8,7 @@ import whisper
 
 from ..models.schemas import Caption
 
-AudioInput = Union[str, np.ndarray]
+AudioInput = str | np.ndarray
 
 # `whisper.transcribe` resolves to the re-exported function, not the submodule
 # (whisper/__init__.py does `from .transcribe import transcribe`). Grab the
@@ -46,6 +46,7 @@ def _make_progress_tqdm(cb: Callable[[int], None]):
     A class is built per call so each transcribe() gets its own closure-captured
     callback; concurrent invocations don't clobber each other.
     """
+
     class _ProgressTqdm:
         def __init__(self, *_args, total: int = 0, **_kwargs):
             self.total = total
@@ -75,10 +76,10 @@ def _make_progress_tqdm(cb: Callable[[int], None]):
 
 def transcribe(
     source: AudioInput,
-    progress_cb: Optional[Callable[[int], None]] = None,
+    progress_cb: Callable[[int], None] | None = None,
     *,
     model_size: str = "base",
-    initial_prompt: Optional[str] = None,
+    initial_prompt: str | None = None,
 ) -> list[Caption]:
     """Transcribe a file path or an in-memory 16 kHz mono float32 numpy array.
 
@@ -111,7 +112,12 @@ def transcribe(
             end = words[-1].get("end", seg["end"])
         else:
             start, end = seg["start"], seg["end"]
-        captions.append(Caption(
-            id=i, start=start, end=end, text=seg["text"].strip(),
-        ))
+        captions.append(
+            Caption(
+                id=i,
+                start=start,
+                end=end,
+                text=seg["text"].strip(),
+            )
+        )
     return captions

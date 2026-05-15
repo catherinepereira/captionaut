@@ -64,7 +64,7 @@ async function createMainWindow(port: number): Promise<BrowserWindow> {
         shell.openExternal(url);
       }
     } catch {
-      // malformed URL — ignore
+      // malformed URL, ignore
     }
     return { action: "deny" };
   });

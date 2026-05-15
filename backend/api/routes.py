@@ -7,19 +7,28 @@ import threading
 import urllib.request
 import uuid
 from collections import OrderedDict
+from collections.abc import AsyncIterator, Callable
 from contextlib import contextmanager
 from pathlib import Path
-from typing import AsyncIterator, Callable, Any
+from typing import Any
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 import aiofiles
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 
 from ..models.schemas import (
-    Caption, TranscribeRequest, TranscriptionResponse, BurnRequest, ExportRequest, AlignmentResult
+    AlignmentResult,
+    BurnRequest,
+    ExportRequest,
+    TranscribeRequest,
+    TranscriptionResponse,
 )
 from ..services import (
-    whisper_service, ffmpeg_service, alignment_service, diarize_service, denoise_service,
+    alignment_service,
+    denoise_service,
+    diarize_service,
+    ffmpeg_service,
+    whisper_service,
 )
 
 log = logging.getLogger(__name__)
@@ -34,7 +43,8 @@ MAX_JOBS = 50
 
 
 def _get_dirs():
-    from ..main import UPLOAD_DIR, OUTPUT_DIR
+    from ..main import OUTPUT_DIR, UPLOAD_DIR
+
     return UPLOAD_DIR, OUTPUT_DIR
 
 
@@ -150,10 +160,14 @@ async def download_model():
 
         if not _model_lock.acquire(blocking=False):
             yield (
-                "data: " + json.dumps({
-                    "status": "error",
-                    "message": "Another download is already in progress.",
-                }) + "\n\n"
+                "data: "
+                + json.dumps(
+                    {
+                        "status": "error",
+                        "message": "Another download is already in progress.",
+                    }
+                )
+                + "\n\n"
             )
             return
 
@@ -262,7 +276,9 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
             job["pct"] = ds_start
             try:
                 vocals, sr = await loop.run_in_executor(
-                    None, denoise_service.isolate_vocals, job["path"],
+                    None,
+                    denoise_service.isolate_vocals,
+                    job["path"],
                 )
                 mono16k = denoise_service.to_speech_mono(vocals, sr)
                 out_wav = OUTPUT_DIR / f"{job_id}_denoised.wav"
@@ -270,7 +286,9 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
                 _touch_job(job_id, denoised_path=str(out_wav))
             except Exception:
                 log.exception("Denoising failed")
-                raise HTTPException(500, "Denoising failed. Check the server log for details.")
+                raise HTTPException(
+                    500, "Denoising failed. Check the server log for details."
+                ) from None
             whisper_source = mono16k
             diarize_source = mono16k
             job["pct"] = ds_end
@@ -308,7 +326,9 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
                 captions, speakers = await loop.run_in_executor(None, _run_diarize)
             except Exception:
                 log.exception("Diarization failed")
-                raise HTTPException(500, "Diarization failed. Check the server log for details.")
+                raise HTTPException(
+                    500, "Diarization failed. Check the server log for details."
+                ) from None
 
     _touch_job(job_id, captions=captions, speakers=speakers, status="done", pct=100)
     return TranscriptionResponse(job_id=job_id, captions=captions, speakers=speakers)
@@ -360,8 +380,13 @@ async def burn(req: BurnRequest):
     out_path = str(OUTPUT_DIR / f"{req.job_id}_captioned.mp4")
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(
-        None, ffmpeg_service.burn_captions,
-        job["path"], req.captions, out_path, req.style, req.speaker_colors,
+        None,
+        ffmpeg_service.burn_captions,
+        job["path"],
+        req.captions,
+        out_path,
+        req.style,
+        req.speaker_colors,
     )
     _touch_job(req.job_id, output_path=out_path)
     return FileResponse(out_path, media_type="video/mp4", filename="captioned.mp4")
@@ -378,6 +403,8 @@ async def export_captions(req: ExportRequest):
     else:
         raise HTTPException(400, "format must be srt or vtt")
 
-    return PlainTextResponse(content, media_type="text/plain", headers={
-        "Content-Disposition": f'attachment; filename="{filename}"'
-    })
+    return PlainTextResponse(
+        content,
+        media_type="text/plain",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

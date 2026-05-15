@@ -1,6 +1,6 @@
 # Captionaut 🎬
 
-> Local-first video captioning app. Drop a video, auto-transcribe with Whisper, edit captions inline, burn them into your video. Everything runs on your machine — no uploads to the cloud.
+> Local-first video captioning app. Drop a video, auto-transcribe with Whisper, edit captions inline, burn them into your video. Everything runs on your machine. No uploads to the cloud.
 
 ## Stack
 
@@ -13,13 +13,13 @@
 ### ✅ Shipped
 - Drag-and-drop video upload (mp4, mov, mkv, webm, avi, m4v; 2 GB max)
 - Whisper transcription with **live progress** (tqdm interception → SSE)
-- **Model size picker** — tiny / base / small / medium / large
-- **Prompt field** — bias Whisper toward proper nouns, jargon, etc.
-- **Optional script upload** — auto-aligns after transcription, highlights mismatches
-- Inline caption editor — click to edit text or timing; click any row to seek the video
-- Keyboard shortcuts — space/k, ←/→, j/l for transport
-- Auto-scrolling caption list — active row stays in view during playback
-- **Burn-in style picker** — font, size, color, outline, position
+- **Model size picker**: tiny / base / small / medium / large
+- **Prompt field**: bias Whisper toward proper nouns, jargon, etc.
+- **Optional script upload**: auto-aligns after transcription, highlights mismatches
+- Inline caption editor: click to edit text or timing; click any row to seek the video
+- Keyboard shortcuts: space/k, left/right, j/l for transport
+- Auto-scrolling caption list: active row stays in view during playback
+- **Burn-in style picker**: font, size, color, outline, position
 - Export `.srt` / `.vtt`
 - First-run Whisper model download with progress UI
 - Error banner with dismissable messages
@@ -27,8 +27,8 @@
 - **Optional speaker diarization** (pyannote) with per-speaker colors in editor + burn-in
 - **Optional audio denoising** (Demucs vocal isolation) for noisy videos
 
-- **Electron desktop packaging** — `electron-builder` config + GitHub Actions workflow produce `.exe` / `.dmg` installers
-- **PyInstaller sidecar bundle** — Whisper + FastAPI compiled into a single binary
+- **Electron desktop packaging**: `electron-builder` config + GitHub Actions workflow produce `.exe` / `.dmg` installers
+- **PyInstaller sidecar bundle**: Whisper + FastAPI compiled into a single binary
 
 ### 🗺️ Planned
 - Project save/restore (currently work is lost on refresh)
@@ -124,6 +124,10 @@ CI runs all three on each `git tag v*` push and attaches `.exe` + `.dmg` to the 
 | `python -m uvicorn backend.main:app --reload` | Run backend with hot reload |
 | `cd frontend && npm run dev` | Run Vite dev server with proxy |
 | `cd frontend && npm run build` | Build production React bundle |
+| `cd frontend && npm test` | Run frontend test suite |
+| `python -m pytest backend/tests` | Run backend test suite |
+| `python -m ruff check backend && python -m ruff format backend` | Lint + format Python |
+| `pre-commit install` | One-time setup of pre-commit hooks |
 | `python -m PyInstaller captionaut.spec` | Build backend sidecar |
 | `npm run electron:compile` | Compile Electron TypeScript |
 | `npm run dist:win` / `dist:mac` | Build installer |

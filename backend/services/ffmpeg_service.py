@@ -4,8 +4,8 @@ import re
 import shutil
 import subprocess
 import tempfile
-from typing import Optional
-from ..models.schemas import Caption, BurnStyle
+
+from ..models.schemas import BurnStyle, Caption
 
 log = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ def _sanitize_stderr(stderr: str) -> str:
 
 # ASS alignment numpad: 2=bottom-center, 5=middle-center, 8=top-center
 _POSITION_PARAMS = {
-    "top":    {"alignment": 8, "margin_v": 30},
+    "top": {"alignment": 8, "margin_v": 30},
     "middle": {"alignment": 5, "margin_v": 0},
     "bottom": {"alignment": 2, "margin_v": 30},
 }
@@ -116,8 +116,9 @@ def _safe_style_name(label: str) -> str:
     return cleaned[:32] or "Speaker"
 
 
-def _style_line(name: str, font: str, font_size: int, primary: str,
-                outline: str, alignment: int, margin_v: int) -> str:
+def _style_line(
+    name: str, font: str, font_size: int, primary: str, outline: str, alignment: int, margin_v: int
+) -> str:
     return (
         f"Style: {name},{font},{font_size},{primary},&H000000FF,{outline},"
         f"&H80000000,-1,0,0,0,100,100,0,0,1,3,1,{alignment},10,10,{margin_v},1"
@@ -126,8 +127,8 @@ def _style_line(name: str, font: str, font_size: int, primary: str,
 
 def _build_ass(
     captions: list[Caption],
-    style: Optional[BurnStyle],
-    speaker_colors: Optional[dict[str, str]] = None,
+    style: BurnStyle | None,
+    speaker_colors: dict[str, str] | None = None,
 ) -> str:
     st = style or BurnStyle()
     default_primary = _hex_to_ass_color(st.color)
@@ -181,21 +182,23 @@ def burn_captions(
     video_path: str,
     captions: list[Caption],
     output_path: str,
-    style: Optional[BurnStyle] = None,
-    speaker_colors: Optional[dict[str, str]] = None,
+    style: BurnStyle | None = None,
+    speaker_colors: dict[str, str] | None = None,
 ) -> str:
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".ass", delete=False, encoding="utf-8"
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".ass", delete=False, encoding="utf-8") as f:
         f.write(_build_ass(captions, style, speaker_colors))
         ass_path = f.name
 
     try:
         cmd = [
-            _ffmpeg(), "-y",
-            "-i", video_path,
-            "-vf", f"ass={ass_path}",
-            "-c:a", "copy",
+            _ffmpeg(),
+            "-y",
+            "-i",
+            video_path,
+            "-vf",
+            f"ass={ass_path}",
+            "-c:a",
+            "copy",
             output_path,
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
