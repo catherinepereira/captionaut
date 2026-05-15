@@ -1,5 +1,4 @@
 import argparse
-import multiprocessing
 import os
 import sys
 
@@ -21,15 +20,12 @@ def _require_gpu() -> str:
     sys.stderr.write(
         "\nCaptionaut requires a CUDA-capable NVIDIA GPU or Apple Silicon Mac.\n"
         "Detected: CPU only.\n\n"
-        "See the README 'Hardware requirements' section for details.\n"
+        "See the README 'Hardware' section for details.\n"
     )
     sys.exit(1)
 
 
 def main():
-    # PyInstaller-frozen multiprocessing on macOS requires explicit spawn mode.
-    multiprocessing.set_start_method("spawn", force=True)
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--data-dir", type=str, default="")
@@ -49,9 +45,6 @@ def main():
 
     import uvicorn
 
-    # Use absolute imports and pass the app object directly: PyInstaller's
-    # frozen __main__ has no parent package context, and uvicorn's "module:attr"
-    # string importer doesn't see the bundled package layout.
     from backend.config import BACKEND_HOST
     from backend.main import app
 

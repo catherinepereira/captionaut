@@ -6,6 +6,8 @@ export interface Caption {
   end: number
   text: string
   speaker?: string | null
+  color_override?: string | null
+  outline_override?: string | null
 }
 
 export interface AlignmentResult {
@@ -100,6 +102,7 @@ interface CaptionStore {
   speakers: string[]                  // detected labels, e.g. "SPEAKER_00"
   speakerColors: Record<string, string>
   currentTime: number
+  videoDuration: number
   seekRequest: number | null
   error: string | null
   transcribeProgress: number
@@ -115,7 +118,9 @@ interface CaptionStore {
   setAlignment: (results: AlignmentResult[]) => void
   setSpeakers: (labels: string[]) => void
   setSpeakerColor: (label: string, color: string) => void
+  addSpeaker: (label: string) => void
   setCurrentTime: (t: number) => void
+  setVideoDuration: (d: number) => void
   requestSeek: (t: number | null) => void
   setError: (msg: string | null) => void
   setTranscribeProgress: (p: number) => void
@@ -148,6 +153,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   speakers: [],
   speakerColors: {},
   currentTime: 0,
+  videoDuration: 0,
   seekRequest: null,
   error: null,
   transcribeProgress: 0,
@@ -211,7 +217,18 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   setSpeakers: (labels) => set({ speakers: labels, speakerColors: buildPalette(labels) }),
   setSpeakerColor: (label, color) =>
     set((store) => ({ speakerColors: { ...store.speakerColors, [label]: color } })),
+  addSpeaker: (label) => set((store) => {
+    const trimmed = label.trim()
+    if (!trimmed || store.speakers.includes(trimmed)) return store
+    const nextSpeakers = [...store.speakers, trimmed]
+    const color = SPEAKER_PALETTE[(nextSpeakers.length - 1) % SPEAKER_PALETTE.length]
+    return {
+      speakers: nextSpeakers,
+      speakerColors: { ...store.speakerColors, [trimmed]: color },
+    }
+  }),
   setCurrentTime: (t) => set((s) => (s.currentTime === t ? s : { currentTime: t })),
+  setVideoDuration: (d) => set((s) => (s.videoDuration === d ? s : { videoDuration: d })),
   requestSeek: (t) => set((s) => (s.seekRequest === t ? s : { seekRequest: t })),
   setError: (msg) => set((s) => (s.error === msg ? s : { error: msg })),
   setTranscribeProgress: (p) => set((s) => (s.transcribeProgress === p ? s : { transcribeProgress: p })),
@@ -236,7 +253,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       state: 'idle', jobId: null, videoFile: null, videoUrl: null,
       captions: [], history: [], future: [],
       alignment: [], speakers: [], speakerColors: {},
-      currentTime: 0, seekRequest: null, error: null,
+      currentTime: 0, videoDuration: 0, seekRequest: null, error: null,
       transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
     }
   }),

@@ -16,6 +16,10 @@ Captionaut needs a GPU. The startup check will refuse to run on a CPU-only machi
 
 ## Getting it running
 
+There are two supported paths: a native bootstrap (fastest to iterate) and Docker (good for hosting on a remote GPU box).
+
+### Native
+
 ```bash
 git clone https://github.com/catherinepereira/captionaut
 cd captionaut
@@ -29,40 +33,33 @@ Once it's up, open <http://localhost:5200>. The first transcription downloads th
 
 You'll need Python 3.11+, Node 20+, and FFmpeg on `PATH`. The script tells you exactly what to install if something is missing.
 
-### Running in Docker
-
-There's a CUDA-based Dockerfile that bundles both the backend and the built frontend into one image:
+### Docker
 
 ```bash
 docker compose up
 ```
 
-This builds the image (a few minutes the first time, mostly PyTorch), starts the container, and serves the entire app at <http://localhost:8010>. Named volumes persist the data directory, the Whisper cache, and the HuggingFace cache across restarts.
+The Dockerfile is multi-stage: a Node build stage compiles the React bundle, then a CUDA Python stage installs the backend and serves the entire app at <http://localhost:8010>. Named volumes persist the data directory, the Whisper cache, and the HuggingFace cache between restarts.
 
-You need the NVIDIA Container Toolkit on the host, and an NVIDIA GPU. Apple Silicon and AMD aren't supported here because GPU passthrough into the container only works for NVIDIA via the toolkit. Mac users should use the native bootstrap path above.
+You need the NVIDIA Container Toolkit on the host. Apple Silicon and AMD aren't supported through Docker because GPU passthrough into the container only works for NVIDIA. Mac users should use the native path above.
 
-If you want to develop against the containerized backend, run the frontend natively (`cd frontend && npm run dev`) and it'll proxy `/api` to the container on `:8010` just like it does with the native backend.
+If you want to host this somewhere with a GPU (a workstation, a rented GPU instance, whatever), the Docker setup is the way. It assumes a trusted network: there's no auth, so don't expose it to the public internet without putting it behind something.
+
+If you want to develop against the containerized backend, run the frontend natively (`cd frontend && npm run dev`) and it'll proxy `/api` to the container on `:8010`.
 
 ## What's in the box
 
-The features that are working:
-
 - Drag-and-drop upload for mp4, mov, mkv, webm, avi, and m4v (capped at 2 GB)
 - Whisper transcription with a live progress bar driven by Server-Sent Events
-- All five model sizes are available, with a prompt field to bias Whisper toward names and jargon
+- All five Whisper model sizes, with a prompt field to bias the model toward names and jargon
 - Optional speaker diarization via pyannote, with per-speaker colors in both the editor and the burned-in video
 - Optional vocal isolation via Demucs for noisy source audio
 - Optional script alignment: drop a `.txt` or `.srt` and Captionaut shows you where the transcription diverges
-- Inline caption editor with click-to-seek, keyboard shortcuts, auto-scrolling, undo/redo, and bulk operations (multi-select, shift timings, merge, split, delete)
+- Inline caption editor with click-to-seek, keyboard shortcuts, auto-scrolling, undo/redo, bulk operations (multi-select, shift, merge, split, delete), and an "Add caption at playhead" button
 - Burn-in style picker covering font, size, color, outline, and screen position
 - Export to `.srt` or `.vtt`
 - A settings panel for default model size, HuggingFace token, and default burn-in style
 - Project state auto-saves to localStorage; re-dropping the same file offers to restore your previous edits
-
-Things that aren't done:
-
-- Code-signed installers. The Electron packaging chain is wired up but unsigned binaries trip SmartScreen on Windows and Gatekeeper on macOS. For now the clone-and-run path is the supported one.
-- App icons. There's a placeholder in `build/icon.png` but no proper `.ico` or `.icns`.
 
 ## Configuration
 
@@ -70,9 +67,9 @@ There aren't many knobs to turn. Most things are detected or stored in the UI.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `backend/` in dev, `~/.captionaut` when packaged |
+| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `backend/` in dev, `/data` in the container |
 | `FFMPEG_BIN` | Override the FFmpeg binary used for burn-in | Whatever is on `PATH` |
-| `HF_TOKEN` | HuggingFace token for pyannote model downloads | Read only by Docker / CI; locally the token comes from the Settings panel and lives in localStorage |
+| `HF_TOKEN` | HuggingFace token for pyannote model downloads | Read only by Docker. Native dev gets the token from the Settings panel and stores it in localStorage |
 
 See [`.env.example`](.env.example) for the same list with comments.
 
@@ -80,39 +77,43 @@ See [`.env.example`](.env.example) for the same list with comments.
 
 ```
 backend/
-├── api/routes.py            FastAPI endpoints
+├── api/                     FastAPI endpoints split per resource
+│   ├── routes.py            aggregates the sub-routers
+│   ├── upload.py
+│   ├── transcribe.py
+│   ├── align.py
+│   ├── burn.py
+│   ├── model.py             /status, /model-status, /capabilities, /download-model
+│   ├── _job_cache.py        bounded LRU + in-flight guard
+│   └── _sse.py              shared SSE polling helper
 ├── services/
 │   ├── whisper_service.py   transcription + tqdm-based progress
 │   ├── diarize_service.py   pyannote pipeline + speaker assignment
-│   ├── denoise_service.py   Demucs + the in-memory decode helper
+│   ├── denoise_service.py   Demucs + in-memory decode helper
 │   ├── ffmpeg_service.py    burn-in, srt/vtt export, ASS escaping
 │   └── alignment_service.py difflib-based script alignment
 ├── models/schemas.py        Pydantic request/response models
-├── main.py                  FastAPI app, static mount in prod
+├── main.py                  FastAPI app, mounts /api and serves frontend/dist
 └── __main__.py              CLI entry point with the GPU check
 
 frontend/src/
-├── components/              all the UI pieces
+├── components/              UI pieces
+├── hooks/                   useVideoPipeline, useGlobalKeybinds, useProjectPersistence
 ├── stores/captionStore.ts   Zustand store with undo/redo + persistence
 ├── utils/                   pure helpers + their tests
 ├── api.ts                   same-origin /api wrapper
 └── config.ts                mirrors the dev port constants from backend/
 
-electron/                    desktop shell (optional path)
-captionaut.spec              PyInstaller spec
-electron-builder.yml         packaging for .exe / .dmg / AppImage
-docker-compose.yml           single-service CUDA backend
+docker-compose.yml           single-service CUDA backend with the built frontend
 Dockerfile                   the image
-start.sh / start.ps1         the bootstrap scripts
+start.sh / start.ps1         native bootstrap scripts
 ```
-
-For more on the configuration files (ruff, prettier, pre-commit, tsconfig), see [`docs/dev/configuration.md`](docs/dev/configuration.md).
 
 ## How it actually works
 
-A handful of things were either tricky or non-obvious; the [docs/dev/architecture.md](docs/dev/architecture.md) file goes into more detail, but the short version:
+A handful of things were either tricky or non-obvious. The [docs/dev/architecture.md](docs/dev/architecture.md) file goes into more detail; the short version:
 
-The frontend and backend always run on the same origin. In dev that's because Vite proxies `/api` requests through to FastAPI. In production it's because FastAPI serves the built React bundle as static files. There is no CORS configuration anywhere. This made a class of "Failed to fetch" bugs disappear.
+The frontend and backend always run on the same origin. In dev that's because Vite proxies `/api` requests through to FastAPI. In the Docker image it's because FastAPI serves the built React bundle as static files. There is no CORS configuration anywhere. This made a class of "Failed to fetch" bugs disappear.
 
 Whisper doesn't expose a progress callback, so we monkey-patch the `tqdm` instance that lives inside `whisper.transcribe` for the duration of one call. The patched class forwards each `update(n)` to a callback, which writes to a job dict that an SSE endpoint polls. The user sees a live progress bar.
 
@@ -123,19 +124,15 @@ The job cache is a bounded `OrderedDict` of the 50 most recent jobs. When a job 
 ## Development
 
 ```bash
-python -m pytest backend/tests        # 20 backend tests
-cd frontend && npm test               # 26 frontend tests
+python -m pytest backend/tests        # backend tests
+cd frontend && npm test               # frontend tests
 python -m ruff check backend          # lint
 python -m ruff format backend         # format
 pre-commit install                    # one-time hook setup
 ```
 
-The pre-commit config runs ruff on the backend and prettier on the frontend. If you push code that doesn't pass these, CI won't be happy.
+The pre-commit config runs ruff on the backend and prettier on the frontend.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## Contributing
-
-Issues and pull requests are welcome. There's no formal process; if you're fixing a bug, a small reproduction in the PR description is enough. If you're adding a feature, opening an issue first to talk about scope is appreciated but not required. See [CONTRIBUTING.md](CONTRIBUTING.md) for the few specifics worth knowing.

@@ -10,9 +10,6 @@ __pycache__
 node_modules
 frontend/node_modules
 frontend/dist
-electron
-electron/dist
-build
 docs
 *.md
 !backend/**/*.md
@@ -21,11 +18,6 @@ backend/outputs
 backend/__pycache__
 backend/**/__pycache__
 backend/tests
-captionaut.spec
-electron-builder.yml
-pyinstaller-hooks
-start-backend.ps1
-start-frontend.ps1
 start.ps1
 start.sh
 .editorconfig

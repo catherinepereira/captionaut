@@ -8,11 +8,6 @@ __pycache__/
 .venv/
 venv/
 
-# PyInstaller output (sidecar binary lives under dist/captionaut-backend/)
-dist/
-*.spec.bak
-build/pyinstaller/
-
 # Node
 node_modules/
 frontend/node_modules/
@@ -20,19 +15,15 @@ frontend/node_modules/
 # Frontend build
 frontend/dist/
 
-# Electron compiled TS + installer output
-electron/dist/
-release/
-
-# FFmpeg binaries downloaded by CI; never committed
-resources/win/
-resources/mac/
-
 # Local uploads / outputs (user data, never committed)
 backend/uploads/
 backend/outputs/
 backend/backend.log
 backend/backend.log.out
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
 
 # OS
 .DS_Store

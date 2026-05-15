@@ -51,6 +51,19 @@ def _hex_to_ass_color(hex_str: str) -> str:
     return f"&H00{b}{g}{r}".upper()
 
 
+def _hex_to_ass_inline_color(hex_str: str) -> str | None:
+    """Convert "#RRGGBB" to the inline-override form `&HBBGGRR&`.
+
+    Inline color tags (`\\1c`, `\\3c`) take BGR without alpha and a trailing
+    `&`. Returns None for invalid input so the caller can skip the override.
+    """
+    if not _HEX_COLOR_RE.match(hex_str or ""):
+        return None
+    h = hex_str.lstrip("#")
+    r, g, b = h[0:2], h[2:4], h[4:6]
+    return f"&H{b}{g}{r}&".upper()
+
+
 def _safe_font(font: str) -> str:
     return font if _FONT_NAME_RE.match(font or "") else "Arial"
 
@@ -171,6 +184,20 @@ def _build_ass(
     for cap in captions:
         safe_text = _escape_ass_text(cap.text)
         style_name = speaker_style_names.get(cap.speaker or "", "Default")
+
+        # Per-caption color overrides take precedence over the speaker /
+        # default style. Emitted as inline `{\1c...\3c...}` tags so we don't
+        # have to mint a Style per caption.
+        override_tags = ""
+        primary_override = _hex_to_ass_inline_color(cap.color_override or "")
+        outline_override = _hex_to_ass_inline_color(cap.outline_override or "")
+        if primary_override:
+            override_tags += f"\\1c{primary_override}"
+        if outline_override:
+            override_tags += f"\\3c{outline_override}"
+        if override_tags:
+            safe_text = f"{{{override_tags}}}{safe_text}"
+
         lines.append(
             f"Dialogue: 0,{_format_ass_ts(cap.start)},{_format_ass_ts(cap.end)},"
             f"{style_name},,0,0,0,,{safe_text}"
@@ -185,7 +212,14 @@ def burn_captions(
     style: BurnStyle | None = None,
     speaker_colors: dict[str, str] | None = None,
 ) -> str:
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".ass", delete=False, encoding="utf-8") as f:
+    # Write the .ass next to the input video so we can hand ffmpeg a bare
+    # filename for the `ass=` filter. Windows paths break libavfilter's
+    # argument parser otherwise: backslashes get treated as escapes and the
+    # drive-letter colon as an option separator.
+    video_dir = os.path.dirname(os.path.abspath(video_path)) or "."
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".ass", delete=False, encoding="utf-8", dir=video_dir,
+    ) as f:
         f.write(_build_ass(captions, style, speaker_colors))
         ass_path = f.name
 
@@ -196,12 +230,12 @@ def burn_captions(
             "-i",
             video_path,
             "-vf",
-            f"ass={ass_path}",
+            f"ass={os.path.basename(ass_path)}",
             "-c:a",
             "copy",
             output_path,
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=video_dir)
         if result.returncode != 0:
             log.error("FFmpeg failed: %s", result.stderr)
             raise RuntimeError(f"FFmpeg failed: {_sanitize_stderr(result.stderr)}")

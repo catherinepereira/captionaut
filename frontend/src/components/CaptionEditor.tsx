@@ -3,6 +3,7 @@ import { useCaptionStore, type Caption } from '../stores/captionStore'
 import { alignScript, errMsg } from '../api'
 import {
   findActiveCaptionId, shiftSelected, mergeSelected, splitAt, deleteSelected,
+  insertCaptionAt,
 } from '../utils/captions'
 import styles from './CaptionEditor.module.css'
 
@@ -29,18 +30,43 @@ interface RowProps {
   isMismatched: boolean
   isSelected: boolean
   speakerColor: string | null
+  effectiveTextColor: string | null
+  speakers: string[]
+  autoEditText: boolean
   onSeek: (t: number) => void
   onToggleSelect: (id: number, e: React.MouseEvent) => void
+  onAutoEditConsumed: () => void
   registerRef: (id: number, el: HTMLDivElement | null) => void
 }
 
 const CaptionRow = memo(function CaptionRow({
-  caption, isActive, isMismatched, isSelected, speakerColor,
-  onSeek, onToggleSelect, registerRef,
+  caption, isActive, isMismatched, isSelected, speakerColor, effectiveTextColor,
+  speakers, autoEditText, onSeek, onToggleSelect, onAutoEditConsumed, registerRef,
 }: RowProps) {
   const updateCaption = useCaptionStore((s) => s.updateCaption)
   const [editingField, setEditingField] = useState<'text' | 'start' | 'end' | null>(null)
   const [draft, setDraft] = useState('')
+  const [overrideOpen, setOverrideOpen] = useState(false)
+
+  useEffect(() => {
+    if (autoEditText) {
+      setEditingField('text')
+      setDraft(caption.text)
+      onAutoEditConsumed()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEditText])
+
+  // Close the override popover when the user clicks anywhere outside it.
+  useEffect(() => {
+    if (!overrideOpen) return
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest(`.${styles.metaRow}`)) setOverrideOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [overrideOpen])
 
   const startEdit = (field: 'text' | 'start' | 'end', e: React.MouseEvent) => {
     e.stopPropagation()
@@ -101,14 +127,76 @@ const CaptionRow = memo(function CaptionRow({
         onClick={(e) => { e.stopPropagation(); onToggleSelect(caption.id, e) }}
         onChange={() => { /* handled in onClick to access shiftKey */ }}
       />
-      {caption.speaker && (
-        <span
-          className={styles.speakerTag}
-          style={{ color: speakerColor ?? undefined }}
+      <div className={styles.metaRow} onClick={(e) => e.stopPropagation()}>
+        <select
+          className={styles.speakerSelect}
+          value={caption.speaker ?? ''}
+          aria-label="Speaker"
+          style={caption.speaker && speakerColor ? { color: speakerColor } : undefined}
+          onChange={(e) => {
+            const v = e.target.value
+            updateCaption(caption.id, { speaker: v === '' ? null : v })
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
-          {caption.speaker}
-        </span>
-      )}
+          <option value="">No speaker</option>
+          {speakers.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className={`${styles.colorBtn} ${caption.color_override ? styles.colorBtnActive : ''}`}
+          aria-label={caption.color_override ? 'Edit color override' : 'Set color override'}
+          title="Per-caption color override"
+          onClick={(e) => { e.stopPropagation(); setOverrideOpen((v) => !v) }}
+        >
+          <span
+            className={styles.colorSwatch}
+            style={{ background: caption.color_override ?? 'transparent' }}
+            aria-hidden="true"
+          />
+        </button>
+
+        {overrideOpen && (
+          <div
+            className={styles.overridePopover}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Color override"
+          >
+            <label className={styles.overrideRow}>
+              <span className={styles.overrideLabel}>Text</span>
+              <input
+                type="color"
+                value={caption.color_override ?? '#ffffff'}
+                onChange={(e) => updateCaption(caption.id, { color_override: e.target.value })}
+              />
+            </label>
+            <label className={styles.overrideRow}>
+              <span className={styles.overrideLabel}>Outline</span>
+              <input
+                type="color"
+                value={caption.outline_override ?? '#000000'}
+                onChange={(e) => updateCaption(caption.id, { outline_override: e.target.value })}
+              />
+            </label>
+            <button
+              type="button"
+              className={styles.overrideClear}
+              onClick={() => {
+                updateCaption(caption.id, { color_override: null, outline_override: null })
+                setOverrideOpen(false)
+              }}
+              disabled={!caption.color_override && !caption.outline_override}
+            >
+              Clear override
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className={styles.times}>
         {editingField === 'start' ? (
           <input
@@ -178,6 +266,7 @@ const CaptionRow = memo(function CaptionRow({
           role="button"
           tabIndex={0}
           aria-label={`Edit caption text: ${caption.text}`}
+          style={effectiveTextColor ? { color: effectiveTextColor } : undefined}
           onClick={(e) => startEdit('text', e)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') { e.stopPropagation(); startEdit('text', e as unknown as React.MouseEvent) }
@@ -195,7 +284,9 @@ const CaptionRow = memo(function CaptionRow({
 export function CaptionEditor() {
   const captions = useCaptionStore((s) => s.captions)
   const currentTime = useCaptionStore((s) => s.currentTime)
+  const videoDuration = useCaptionStore((s) => s.videoDuration)
   const alignment = useCaptionStore((s) => s.alignment)
+  const speakers = useCaptionStore((s) => s.speakers)
   const speakerColors = useCaptionStore((s) => s.speakerColors)
   const requestSeek = useCaptionStore((s) => s.requestSeek)
   const undo = useCaptionStore((s) => s.undo)
@@ -207,6 +298,19 @@ export function CaptionEditor() {
 
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const lastSelectedRef = useRef<number | null>(null)
+  const [autoEditId, setAutoEditId] = useState<number | null>(null)
+  const [bulkSpeakerOpen, setBulkSpeakerOpen] = useState(false)
+
+  // Close the bulk speaker dropdown on outside click.
+  useEffect(() => {
+    if (!bulkSpeakerOpen) return
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest(`.${styles.bulkSpeaker}`)) setBulkSpeakerOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [bulkSpeakerOpen])
 
   const jobId = useCaptionStore((s) => s.jobId)
   const setAlignment = useCaptionStore((s) => s.setAlignment)
@@ -306,7 +410,27 @@ export function CaptionEditor() {
     clearSelection()
   }
 
-  if (captions.length === 0) return null
+  const bulkAssignSpeaker = (label: string | null) => {
+    if (selected.size === 0) return
+    const next = captions.map((c) =>
+      selected.has(c.id) && c.speaker !== label ? { ...c, speaker: label } : c,
+    )
+    if (next === captions) return
+    replaceCaptions(next)
+    setBulkSpeakerOpen(false)
+  }
+
+  const addAtPlayhead = () => {
+    const result = insertCaptionAt(captions, currentTime, {
+      maxEnd: videoDuration > 0 ? videoDuration : undefined,
+    })
+    replaceCaptions(result.captions)
+    setAutoEditId(result.newId)
+    // Scroll the new row into view on the next frame so it's visible to edit.
+    requestAnimationFrame(() => {
+      rowRefs.current.get(result.newId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
 
   const hasSelection = selected.size > 0
   const splitTargetId = selected.size === 1 ? selected.values().next().value : null
@@ -340,6 +464,13 @@ export function CaptionEditor() {
         <span className={styles.count}>{captions.length} segments</span>
         <div className={styles.headerSpacer} />
         <button
+          className={styles.addBtn}
+          onClick={addAtPlayhead}
+          title="Add a new caption at the current playhead"
+        >
+          + Add
+        </button>
+        <button
           className={styles.historyBtn}
           onClick={undo}
           disabled={historyDepth === 0}
@@ -363,6 +494,40 @@ export function CaptionEditor() {
           <button className={styles.bulkBtn} onClick={() => shiftBy(+0.1)} title="Shift +100ms">+100ms</button>
           <button className={styles.bulkBtn} onClick={mergeNow} disabled={selected.size < 2} title="Merge selected into one caption">Merge</button>
           <button className={styles.bulkBtn} onClick={splitAtPlayhead} disabled={!canSplit} title="Split selected caption at the playhead">Split</button>
+          <div className={styles.bulkSpeaker}>
+            <button
+              className={styles.bulkBtn}
+              onClick={() => setBulkSpeakerOpen((v) => !v)}
+              title="Assign all selected captions to a speaker"
+            >
+              Speaker ▾
+            </button>
+            {bulkSpeakerOpen && (
+              <div className={styles.bulkSpeakerMenu} role="menu">
+                <button
+                  className={styles.bulkSpeakerItem}
+                  onClick={() => bulkAssignSpeaker(null)}
+                >
+                  No speaker
+                </button>
+                {speakers.map((s) => (
+                  <button
+                    key={s}
+                    className={styles.bulkSpeakerItem}
+                    style={{ color: speakerColors[s] ?? undefined }}
+                    onClick={() => bulkAssignSpeaker(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+                {speakers.length === 0 && (
+                  <span className={styles.bulkSpeakerEmpty}>
+                    Add a speaker first via the Speakers panel.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           <button className={`${styles.bulkBtn} ${styles.bulkDanger}`} onClick={deleteNow} title="Delete selected">Delete</button>
           <button
             className={styles.bulkClose}
@@ -374,19 +539,32 @@ export function CaptionEditor() {
       )}
 
       <div className={styles.list} role="list" aria-label="Captions">
-        {captions.map((cap) => (
-          <CaptionRow
-            key={cap.id}
-            caption={cap}
-            isActive={cap.id === activeId}
-            isMismatched={mismatchedIds.has(cap.id)}
-            isSelected={selected.has(cap.id)}
-            speakerColor={cap.speaker ? speakerColors[cap.speaker] ?? null : null}
-            onSeek={requestSeek}
-            onToggleSelect={handleToggleSelect}
-            registerRef={registerRef}
-          />
-        ))}
+        {captions.length === 0 && (
+          <p className={styles.emptyHint}>
+            No captions yet. Press <strong>+ Add</strong> to create one at the current playhead.
+          </p>
+        )}
+        {captions.map((cap) => {
+          const speakerColor = cap.speaker ? speakerColors[cap.speaker] ?? null : null
+          const effectiveTextColor = cap.color_override ?? speakerColor
+          return (
+            <CaptionRow
+              key={cap.id}
+              caption={cap}
+              isActive={cap.id === activeId}
+              isMismatched={mismatchedIds.has(cap.id)}
+              isSelected={selected.has(cap.id)}
+              speakerColor={speakerColor}
+              effectiveTextColor={effectiveTextColor}
+              speakers={speakers}
+              autoEditText={autoEditId === cap.id}
+              onSeek={requestSeek}
+              onToggleSelect={handleToggleSelect}
+              onAutoEditConsumed={() => setAutoEditId(null)}
+              registerRef={registerRef}
+            />
+          )
+        })}
       </div>
     </div>
   )

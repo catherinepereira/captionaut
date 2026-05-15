@@ -16,7 +16,7 @@ A prompt field lets you bias Whisper toward names and jargon ("Common names: Cat
 
 ## The stack
 
-Python 3.11 plus FastAPI on the backend, all running locally. React plus TypeScript on the frontend, served by Vite in dev and by FastAPI's static mount in production. OpenAI Whisper for transcription, pyannote.audio for diarization, Demucs for vocal isolation. FFmpeg handles the actual subtitle burn-in via its `ass` filter. Electron and electron-builder provide the optional desktop packaging.
+Python 3.11 plus FastAPI on the backend, all running locally. React plus TypeScript on the frontend, served by Vite in dev and by FastAPI's static mount in production. OpenAI Whisper for transcription, pyannote.audio for diarization, Demucs for vocal isolation. FFmpeg handles the actual subtitle burn-in via its `ass` filter. The whole thing also bundles into a CUDA Docker image for anyone who'd rather containerize the backend or host it on a remote GPU box.
 
 The architecture is deliberately simple: one HTTP origin, in-memory job state, a bounded LRU that cleans up after itself. There's no database, no queue, no auth, no cloud anything.
 

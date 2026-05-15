@@ -9,6 +9,8 @@ class Caption(BaseModel):
     end: float
     text: str
     speaker: str | None = None
+    color_override: str | None = None
+    outline_override: str | None = None
 
 
 ModelSize = Literal["tiny", "base", "small", "medium", "large"]

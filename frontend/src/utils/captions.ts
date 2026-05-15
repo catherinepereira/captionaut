@@ -80,3 +80,52 @@ export function deleteSelected(captions: Caption[], selected: Set<number>): Capt
   if (selected.size === 0) return captions
   return renumber(captions.filter((c) => !selected.has(c.id)))
 }
+
+const DEFAULT_NEW_CAPTION_DURATION = 2
+
+/**
+ * Insert a new empty caption around time `t`, returning the new list, the
+ * id of the inserted caption, and the resolved start/end. The new caption is
+ * placed so it doesn't overlap any existing one: if `t` falls inside an
+ * existing caption, the new caption snaps to start at that caption's end.
+ * Duration is trimmed if it would overlap the next caption or exceed `maxEnd`.
+ */
+export function insertCaptionAt(
+  captions: Caption[],
+  t: number,
+  opts: { duration?: number; maxEnd?: number } = {},
+): { captions: Caption[]; newId: number } {
+  const duration = opts.duration ?? DEFAULT_NEW_CAPTION_DURATION
+  const maxEnd = opts.maxEnd ?? Infinity
+
+  // If t falls inside an existing caption, slide the new one to the gap after.
+  const containing = captions.find((c) => t >= c.start && t < c.end)
+  let start = Math.max(0, containing ? containing.end : t)
+
+  // Snap to the next caption's start if our window would overlap it.
+  const next = captions.find((c) => c.start > start)
+  const ceiling = Math.min(maxEnd, next ? next.start : maxEnd)
+  if (start >= ceiling) {
+    // No room at the playhead. Drop the new caption at the end instead.
+    const last = captions[captions.length - 1]
+    start = last ? Math.max(last.end, 0) : 0
+  }
+  const end = Math.min(ceiling, start + duration)
+
+  const inserted: Caption = {
+    id: 0, // renumber() rewrites this
+    start,
+    end,
+    text: '',
+    speaker: null,
+  }
+
+  // Insert at the correct sorted position.
+  const idx = captions.findIndex((c) => c.start > start)
+  const next_list =
+    idx < 0 ? [...captions, inserted] : [...captions.slice(0, idx), inserted, ...captions.slice(idx)]
+
+  const renumbered = renumber(next_list)
+  const newIndex = idx < 0 ? renumbered.length - 1 : idx
+  return { captions: renumbered, newId: renumbered[newIndex].id }
+}

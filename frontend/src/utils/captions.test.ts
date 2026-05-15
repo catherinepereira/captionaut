@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   findActiveCaption, findActiveCaptionId,
   shiftSelected, mergeSelected, splitAt, deleteSelected, renumber,
+  insertCaptionAt,
 } from './captions'
 import type { Caption } from '../stores/captionStore'
 
@@ -111,6 +112,63 @@ describe('deleteSelected', () => {
   it('no-ops when nothing selected', () => {
     const list = [c(0, 0, 1)]
     expect(deleteSelected(list, new Set())).toBe(list)
+  })
+})
+
+describe('insertCaptionAt', () => {
+  it('inserts an empty caption at the playhead when the slot is free', () => {
+    const list = [c(0, 0, 1, 'a'), c(1, 5, 6, 'b')]
+    const { captions, newId } = insertCaptionAt(list, 2)
+    expect(captions).toHaveLength(3)
+    const inserted = captions.find((c) => c.id === newId)!
+    expect(inserted.start).toBe(2)
+    expect(inserted.end).toBe(4)
+    expect(inserted.text).toBe('')
+  })
+
+  it('keeps the list sorted by start time', () => {
+    const list = [c(0, 0, 1), c(1, 5, 6)]
+    const { captions } = insertCaptionAt(list, 2)
+    const starts = captions.map((c) => c.start)
+    expect(starts).toEqual([...starts].sort((a, b) => a - b))
+  })
+
+  it('snaps past an overlapping caption', () => {
+    const list = [c(0, 1, 3, 'existing'), c(1, 10, 11)]
+    const { captions, newId } = insertCaptionAt(list, 2)
+    const inserted = captions.find((c) => c.id === newId)!
+    expect(inserted.start).toBe(3)
+    expect(inserted.end).toBe(5)
+  })
+
+  it('shortens duration to fit before the next caption', () => {
+    const list = [c(0, 0, 1), c(1, 2.5, 3)]
+    const { captions, newId } = insertCaptionAt(list, 1)
+    const inserted = captions.find((c) => c.id === newId)!
+    expect(inserted.start).toBe(1)
+    expect(inserted.end).toBe(2.5)
+  })
+
+  it('appends at the end if no room at the playhead', () => {
+    const list = [c(0, 0, 5)]
+    const { captions, newId } = insertCaptionAt(list, 1)
+    const inserted = captions.find((c) => c.id === newId)!
+    expect(inserted.start).toBe(5)
+  })
+
+  it('works on an empty list', () => {
+    const { captions, newId } = insertCaptionAt([], 1.5)
+    expect(captions).toHaveLength(1)
+    expect(captions[0].id).toBe(newId)
+    expect(captions[0].start).toBe(1.5)
+    expect(captions[0].end).toBe(3.5)
+  })
+
+  it('respects maxEnd as a ceiling', () => {
+    const { captions, newId } = insertCaptionAt([], 5, { maxEnd: 6 })
+    const inserted = captions.find((c) => c.id === newId)!
+    expect(inserted.start).toBe(5)
+    expect(inserted.end).toBe(6)
   })
 })
 

@@ -9,6 +9,7 @@ export function VideoPlayer() {
   const currentTime = useCaptionStore((s) => s.currentTime)
   const seekRequest = useCaptionStore((s) => s.seekRequest)
   const setCurrentTime = useCaptionStore((s) => s.setCurrentTime)
+  const setVideoDuration = useCaptionStore((s) => s.setVideoDuration)
   const requestSeek = useCaptionStore((s) => s.requestSeek)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -16,9 +17,14 @@ export function VideoPlayer() {
     const vid = videoRef.current
     if (!vid) return
     const onTime = () => setCurrentTime(vid.currentTime)
+    const onMeta = () => setVideoDuration(vid.duration || 0)
     vid.addEventListener('timeupdate', onTime)
-    return () => vid.removeEventListener('timeupdate', onTime)
-  }, [setCurrentTime])
+    vid.addEventListener('loadedmetadata', onMeta)
+    return () => {
+      vid.removeEventListener('timeupdate', onTime)
+      vid.removeEventListener('loadedmetadata', onMeta)
+    }
+  }, [setCurrentTime, setVideoDuration])
 
   useEffect(() => {
     const vid = videoRef.current
@@ -62,12 +68,25 @@ export function VideoPlayer() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const speakerColors = useCaptionStore((s) => s.speakerColors)
   const activeCaption = useMemo(
     () => findActiveCaption(captions, currentTime),
     [captions, currentTime],
   )
 
   if (!videoUrl) return null
+
+  const overlayColor =
+    activeCaption?.color_override ??
+    (activeCaption?.speaker ? speakerColors[activeCaption.speaker] : null) ??
+    null
+  const overlayOutline = activeCaption?.outline_override ?? null
+
+  const overlayStyle: React.CSSProperties = {}
+  if (overlayColor) overlayStyle.color = overlayColor
+  if (overlayOutline) {
+    overlayStyle.textShadow = `0 0 2px ${overlayOutline}, 0 0 4px ${overlayOutline}`
+  }
 
   return (
     <div className={styles.wrapper}>
@@ -78,7 +97,9 @@ export function VideoPlayer() {
         className={styles.video}
       />
       {activeCaption && (
-        <div className={styles.overlay}>{activeCaption.text}</div>
+        <div className={styles.overlay} style={overlayStyle}>
+          {activeCaption.text}
+        </div>
       )}
     </div>
   )

@@ -105,7 +105,13 @@ def transcribe(
             tqdm_module.tqdm = original
 
     captions = []
-    for i, seg in enumerate(result["segments"]):
+    for seg in result["segments"]:
+        text = (seg.get("text") or "").strip()
+        if not text:
+            # Whisper occasionally emits empty segments for silence, music, or
+            # short hallucinations. Drop them so the editor isn't littered with
+            # blank rows.
+            continue
         words = seg.get("words") or []
         if words:
             start = words[0].get("start", seg["start"])
@@ -114,10 +120,10 @@ def transcribe(
             start, end = seg["start"], seg["end"]
         captions.append(
             Caption(
-                id=i,
+                id=len(captions),
                 start=start,
                 end=end,
-                text=seg["text"].strip(),
+                text=text,
             )
         )
     return captions
