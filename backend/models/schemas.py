@@ -53,7 +53,7 @@ class BurnStyle(BaseModel):
     fontSize: int = 48
     color: str = "#000000"
     outlineColor: str = "#FFFFFF"
-    outlineThickness: float = 3.0
+    outlineThickness: float = 7.0
     posX: float = 50.0  # 0..100, percent of video width
     posY: float = 90.0  # 0..100, percent of video height
     align: HorizontalAlign = "center"

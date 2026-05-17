@@ -80,9 +80,9 @@ def _safe_outline_thickness(thickness: float) -> float:
     try:
         n = float(thickness)
     except (TypeError, ValueError):
-        return 3.0
+        return 7.0
     if n != n:  # NaN
-        return 3.0
+        return 7.0
     return max(0.0, min(20.0, n))
 
 

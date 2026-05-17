@@ -40,7 +40,7 @@ export const DEFAULT_BURN_STYLE: BurnStyle = {
   fontSize: 48,
   color: '#000000',
   outlineColor: '#FFFFFF',
-  outlineThickness: 3,
+  outlineThickness: 7,
   posX: 50,
   posY: 90,
   align: 'center',
