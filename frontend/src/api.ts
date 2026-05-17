@@ -8,7 +8,7 @@ export interface TranscribeResult {
 }
 
 // Same-origin in every environment: Vite proxies `/api` in dev, FastAPI
-// serves the static React build under `/` in production / Electron.
+// serves the built React bundle under `/` in production.
 const BASE = '/api'
 
 export async function uploadVideo(file: File): Promise<string> {
@@ -55,11 +55,23 @@ export async function alignScript(jobId: string, file: File): Promise<AlignmentR
   return res.json()
 }
 
+export interface SpeakerStyleMaps {
+  colors: Record<string, string>
+  outlineColors: Record<string, string>
+  outlineThickness: Record<string, number>
+  fontFamilies: Record<string, string>
+  fontSizes: Record<string, number>
+}
+
+function nonEmpty<T extends Record<string, unknown>>(m: T): T | null {
+  return Object.keys(m).length > 0 ? m : null
+}
+
 export async function burnCaptions(
   jobId: string,
   captions: Caption[],
   style: BurnStyle,
-  speakerColors?: Record<string, string>,
+  speakers: SpeakerStyleMaps,
 ): Promise<Blob> {
   const res = await fetch(`${BASE}/burn`, {
     method: 'POST',
@@ -68,7 +80,11 @@ export async function burnCaptions(
       job_id: jobId,
       captions,
       style,
-      speaker_colors: speakerColors && Object.keys(speakerColors).length > 0 ? speakerColors : null,
+      speaker_colors: nonEmpty(speakers.colors),
+      speaker_outline_colors: nonEmpty(speakers.outlineColors),
+      speaker_outline_thickness: nonEmpty(speakers.outlineThickness),
+      speaker_font_families: nonEmpty(speakers.fontFamilies),
+      speaker_font_sizes: nonEmpty(speakers.fontSizes),
     }),
   })
   if (!res.ok) throw new Error(await res.text())

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import re
 
 from fastapi import APIRouter, HTTPException
@@ -30,12 +31,18 @@ async def burn(req: BurnRequest):
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(
         None,
-        ffmpeg_service.burn_captions,
-        job["path"],
-        req.captions,
-        out_path,
-        req.style,
-        req.speaker_colors,
+        functools.partial(
+            ffmpeg_service.burn_captions,
+            job["path"],
+            req.captions,
+            out_path,
+            style=req.style,
+            speaker_colors=req.speaker_colors,
+            speaker_outline_colors=req.speaker_outline_colors,
+            speaker_outline_thickness=req.speaker_outline_thickness,
+            speaker_font_families=req.speaker_font_families,
+            speaker_font_sizes=req.speaker_font_sizes,
+        ),
     )
     touch_job(req.job_id, output_path=out_path)
     return FileResponse(out_path, media_type="video/mp4", filename="captioned.mp4")

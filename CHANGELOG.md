@@ -19,15 +19,15 @@ release; until then we track unreleased work under **[Unreleased]**.
     auto-snapping past any overlapping caption.
   - Drag-drop `.txt` / `.srt` onto the editor to align a script after
     transcription.
-- Backend test suite (pytest + FastAPI TestClient) and frontend test suite
-  (Vitest).
 - GPU enforcement: backend exits at startup on CPU-only systems with a clear
-  message. `--allow-cpu` flag for test and CI use.
-- Bootstrap scripts (`start.sh`, `start.ps1`) that verify GPU and prereqs,
-  install dependencies on first run, and start both servers.
+  message.
 - Full-stack `Dockerfile` (multi-stage: Node build for the frontend, CUDA Python
   for the backend) and `docker-compose.yml`. `docker compose up` serves the
   entire app at `:8010`.
+- Manual speaker assignment per caption (inline dropdown + bulk-assign in the
+  selection toolbar), an "+ Add speaker" affordance in the Speakers panel,
+  and per-caption text + outline color overrides emitted as inline ASS tags
+  during burn.
 - `LICENSE` (MIT), `.env.example`, and `.editorconfig`.
 - Toast notifications with auto-dismiss; surfaces a "downloading model" hint
   when pyannote or Demucs need to fetch weights on first use.
@@ -57,18 +57,20 @@ release; until then we track unreleased work under **[Unreleased]**.
 ### Removed
 - Electron desktop shell, electron-builder config, PyInstaller spec and
   hooks, and the GitHub Actions release workflow. The supported distribution
-  paths are now the native bootstrap and the Docker image.
-- `start-backend.ps1` and `start-frontend.ps1` (replaced by `start.ps1` /
-  `start.sh`).
+  paths are now manual native install and the Docker image.
+- Bootstrap scripts (`start.sh`, `start.ps1`) and the older per-process
+  scripts. Developers install + run things directly; the README has the
+  commands.
+- Backend tests (pytest) and frontend tests (Vitest) plus their dev
+  dependencies and configuration. Linters (ruff, prettier, pre-commit)
+  removed in favor of "use whatever you have."
 - Root `package.json` and `node_modules` (only existed for the Electron
   packaging chain).
 
 ### Internal
-- Added `frontend/src/utils/captions.ts` (pure caption-editing helpers shared
-  by the editor and tests) and `insertCaptionAt` with full test coverage.
+- Added `frontend/src/utils/captions.ts` (pure caption-editing helpers).
 - Added `frontend/src/utils/projects.ts` and `frontend/src/utils/settings.ts`
   (localStorage persistence).
-- Added `vitest` + `jsdom` dev dependencies and a `test` script.
 - Added `/api/capabilities` endpoint reporting which optional model caches
   are populated on disk.
 

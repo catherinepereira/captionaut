@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { loadSettings, saveSettings, type UserSettings } from '../utils/settings'
-import { useCaptionStore, type ModelSize, type BurnStyle } from '../stores/captionStore'
+import { useCaptionStore, type ModelSize, type BurnStyle, type HorizontalAlign } from '../stores/captionStore'
+import { FONT_OPTIONS } from '../utils/fonts'
 import styles from './SettingsPanel.module.css'
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 }
 
 const MODEL_SIZES: ModelSize[] = ['tiny', 'base', 'small', 'medium', 'large']
-const POSITIONS: BurnStyle['position'][] = ['top', 'middle', 'bottom']
+const ALIGN_VALUES: HorizontalAlign[] = ['left', 'center', 'right']
 
 export function SettingsPanel({ open, onClose }: Props) {
   const [draft, setDraft] = useState<UserSettings>(() => loadSettings())
@@ -90,12 +91,17 @@ export function SettingsPanel({ open, onClose }: Props) {
           <span className={styles.label}>Default burn-in style</span>
           <div className={styles.styleGrid}>
             <label htmlFor={fontId} className={styles.subLabel}>Font</label>
-            <input
+            <select
               id={fontId}
               value={draft.defaultBurnStyle.fontFamily}
               onChange={(e) => patchBurn({ fontFamily: e.target.value })}
               className={styles.input}
-            />
+              style={{ fontFamily: draft.defaultBurnStyle.fontFamily }}
+            >
+              {FONT_OPTIONS.map((f) => (
+                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+              ))}
+            </select>
             <label htmlFor={sizeId} className={styles.subLabel}>Size</label>
             <input
               id={sizeId}
@@ -123,22 +129,52 @@ export function SettingsPanel({ open, onClose }: Props) {
               className={styles.color}
               aria-label="Outline color"
             />
-            <span className={styles.subLabel} id={`${titleId}-pos`}>Position</span>
+            <span className={styles.subLabel}>Thickness</span>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={0.5}
+              value={draft.defaultBurnStyle.outlineThickness}
+              onChange={(e) => patchBurn({ outlineThickness: parseFloat(e.target.value) })}
+              aria-label="Outline thickness"
+            />
+            <span className={styles.subLabel}>X (%)</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={draft.defaultBurnStyle.posX}
+              onChange={(e) => patchBurn({ posX: Number(e.target.value) })}
+              aria-label="Horizontal position percent"
+            />
+            <span className={styles.subLabel}>Y (%)</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={draft.defaultBurnStyle.posY}
+              onChange={(e) => patchBurn({ posY: Number(e.target.value) })}
+              aria-label="Vertical position percent"
+            />
+            <span className={styles.subLabel} id={`${titleId}-align`}>Align</span>
             <div
               className={styles.posGroup}
               role="radiogroup"
-              aria-labelledby={`${titleId}-pos`}
+              aria-labelledby={`${titleId}-align`}
             >
-              {POSITIONS.map((p) => (
+              {ALIGN_VALUES.map((a) => (
                 <button
-                  key={p}
+                  key={a}
                   type="button"
                   role="radio"
-                  aria-checked={draft.defaultBurnStyle.position === p}
-                  className={`${styles.posBtn} ${draft.defaultBurnStyle.position === p ? styles.posActive : ''}`}
-                  onClick={() => patchBurn({ position: p })}
+                  aria-checked={draft.defaultBurnStyle.align === a}
+                  className={`${styles.posBtn} ${draft.defaultBurnStyle.align === a ? styles.posActive : ''}`}
+                  onClick={() => patchBurn({ align: a })}
                 >
-                  {p}
+                  {a}
                 </button>
               ))}
             </div>

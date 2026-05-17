@@ -1,5 +1,6 @@
 import { useEffect, useId } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
+import { FONT_OPTIONS } from '../utils/fonts'
 import styles from './StylePanel.module.css'
 
 interface Props {
@@ -7,20 +8,10 @@ interface Props {
   onClose: () => void
 }
 
-const FONT_OPTIONS = [
-  'Arial',
-  'Helvetica',
-  'Verdana',
-  'Georgia',
-  'Times New Roman',
-  'Courier New',
-  'Impact',
-]
-
-const POSITION_OPTIONS: { value: 'top' | 'middle' | 'bottom'; label: string }[] = [
-  { value: 'top', label: 'Top' },
-  { value: 'middle', label: 'Middle' },
-  { value: 'bottom', label: 'Bottom' },
+const ALIGN_OPTIONS: { value: 'left' | 'center' | 'right'; label: string }[] = [
+  { value: 'left', label: 'Left' },
+  { value: 'center', label: 'Center' },
+  { value: 'right', label: 'Right' },
 ]
 
 export function StylePanel({ open, onClose }: Props) {
@@ -75,7 +66,9 @@ export function StylePanel({ open, onClose }: Props) {
             value={burnStyle.fontFamily}
             onChange={(e) => setBurnStyle({ fontFamily: e.target.value })}
           >
-            {FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+            {FONT_OPTIONS.map((f) => (
+              <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+            ))}
           </select>
         </div>
 
@@ -116,20 +109,62 @@ export function StylePanel({ open, onClose }: Props) {
         </div>
 
         <div className={styles.row}>
-          <span id={`${titleId}-pos`} className={styles.label}>Position</span>
+          <label className={styles.label}>Thickness</label>
+          <input
+            className={styles.range}
+            type="range"
+            min={0}
+            max={10}
+            step={0.5}
+            value={burnStyle.outlineThickness}
+            onChange={(e) => setBurnStyle({ outlineThickness: parseFloat(e.target.value) })}
+          />
+          <span className={styles.value}>{burnStyle.outlineThickness.toFixed(1)}</span>
+        </div>
+
+        <div className={styles.row}>
+          <label className={styles.label}>Horizontal</label>
+          <input
+            className={styles.range}
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={burnStyle.posX}
+            onChange={(e) => setBurnStyle({ posX: Number(e.target.value) })}
+          />
+          <span className={styles.value}>{Math.round(burnStyle.posX)}%</span>
+        </div>
+
+        <div className={styles.row}>
+          <label className={styles.label}>Vertical</label>
+          <input
+            className={styles.range}
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={burnStyle.posY}
+            onChange={(e) => setBurnStyle({ posY: Number(e.target.value) })}
+          />
+          <span className={styles.value}>{Math.round(burnStyle.posY)}%</span>
+        </div>
+
+        <div className={styles.row}>
+          <span id={`${titleId}-align`} className={styles.label}>Align</span>
           <div
             className={styles.positionGroup}
             role="radiogroup"
-            aria-labelledby={`${titleId}-pos`}
+            aria-labelledby={`${titleId}-align`}
           >
-            {POSITION_OPTIONS.map(({ value, label }) => (
+            {ALIGN_OPTIONS.map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
                 role="radio"
-                aria-checked={burnStyle.position === value}
-                className={`${styles.posBtn} ${burnStyle.position === value ? styles.posBtnActive : ''}`}
-                onClick={() => setBurnStyle({ position: value })}
+                aria-checked={burnStyle.align === value}
+                className={`${styles.posBtn} ${burnStyle.align === value ? styles.posBtnActive : ''}`}
+                onClick={() => setBurnStyle({ align: value })}
               >
                 {label}
               </button>

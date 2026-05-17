@@ -8,7 +8,12 @@ export interface Caption {
   speaker?: string | null
   color_override?: string | null
   outline_override?: string | null
+  outline_thickness?: number | null
+  font_family?: string | null
+  font_size?: number | null
 }
+
+export type CaptionPatch = Partial<Omit<Caption, 'id'>>
 
 export interface AlignmentResult {
   caption_id: number
@@ -17,20 +22,28 @@ export interface AlignmentResult {
   similarity: number
 }
 
+export type HorizontalAlign = 'left' | 'center' | 'right'
+
 export interface BurnStyle {
   fontFamily: string
   fontSize: number
   color: string
   outlineColor: string
-  position: 'top' | 'middle' | 'bottom'
+  outlineThickness: number
+  posX: number  // 0..100, percent of video width
+  posY: number  // 0..100, percent of video height
+  align: HorizontalAlign
 }
 
 export const DEFAULT_BURN_STYLE: BurnStyle = {
   fontFamily: 'Arial',
   fontSize: 48,
-  color: '#FFFFFF',
-  outlineColor: '#000000',
-  position: 'bottom',
+  color: '#000000',
+  outlineColor: '#FFFFFF',
+  outlineThickness: 3,
+  posX: 50,
+  posY: 90,
+  align: 'center',
 }
 
 export type ModelSize = 'tiny' | 'base' | 'small' | 'medium' | 'large'
@@ -101,9 +114,14 @@ interface CaptionStore {
   alignment: AlignmentResult[]
   speakers: string[]                  // detected labels, e.g. "SPEAKER_00"
   speakerColors: Record<string, string>
+  speakerOutlineColors: Record<string, string>
+  speakerOutlineThickness: Record<string, number>
+  speakerFontFamilies: Record<string, string>
+  speakerFontSizes: Record<string, number>
   currentTime: number
   videoDuration: number
   seekRequest: number | null
+  scrollToCaptionRequest: number | null
   error: string | null
   transcribeProgress: number
   transcribeConfig: TranscribeConfig
@@ -114,14 +132,31 @@ interface CaptionStore {
   setJobId: (id: string) => void
   setState: (s: AppState) => void
   setCaptions: (captions: Caption[]) => void
-  updateCaption: (id: number, patch: Partial<Omit<Caption, 'id'>>) => void
+  updateCaption: (id: number, patch: CaptionPatch) => void
   setAlignment: (results: AlignmentResult[]) => void
   setSpeakers: (labels: string[]) => void
   setSpeakerColor: (label: string, color: string) => void
+  setSpeakerOutlineColor: (label: string, color: string) => void
+  setSpeakerOutlineThickness: (label: string, value: number) => void
+  setSpeakerFontFamily: (label: string, family: string) => void
+  setSpeakerFontSize: (label: string, size: number) => void
   addSpeaker: (label: string) => void
+  renameSpeaker: (oldLabel: string, newLabel: string) => void
+  loadSavedSession: (data: {
+    captions: Caption[]
+    speakers: string[]
+    speakerColors: Record<string, string>
+    speakerOutlineColors: Record<string, string>
+    speakerOutlineThickness: Record<string, number>
+    speakerFontFamilies: Record<string, string>
+    speakerFontSizes: Record<string, number>
+    alignment: AlignmentResult[]
+    burnStyle: BurnStyle
+  }) => void
   setCurrentTime: (t: number) => void
   setVideoDuration: (d: number) => void
   requestSeek: (t: number | null) => void
+  requestScrollToCaption: (id: number | null) => void
   setError: (msg: string | null) => void
   setTranscribeProgress: (p: number) => void
   setTranscribeConfig: (patch: Partial<TranscribeConfig>) => void
@@ -141,6 +176,29 @@ function buildPalette(labels: string[]): Record<string, string> {
   return out
 }
 
+const DEFAULT_SPEAKER_OUTLINE = '#FFFFFF'
+
+function buildOutlinePalette(labels: string[]): Record<string, string> {
+  const out: Record<string, string> = {}
+  labels.forEach((label) => { out[label] = DEFAULT_SPEAKER_OUTLINE })
+  return out
+}
+
+// Per-field equality check for caption patches. Strict so adding a new
+// Caption field forces a corresponding entry here (TS will flag it).
+function patchDiffers(prev: Caption, patch: CaptionPatch): boolean {
+  if ('start' in patch && patch.start !== prev.start) return true
+  if ('end' in patch && patch.end !== prev.end) return true
+  if ('text' in patch && patch.text !== prev.text) return true
+  if ('speaker' in patch && patch.speaker !== prev.speaker) return true
+  if ('color_override' in patch && patch.color_override !== prev.color_override) return true
+  if ('outline_override' in patch && patch.outline_override !== prev.outline_override) return true
+  if ('outline_thickness' in patch && patch.outline_thickness !== prev.outline_thickness) return true
+  if ('font_family' in patch && patch.font_family !== prev.font_family) return true
+  if ('font_size' in patch && patch.font_size !== prev.font_size) return true
+  return false
+}
+
 export const useCaptionStore = create<CaptionStore>((set) => ({
   state: 'idle',
   jobId: null,
@@ -152,9 +210,14 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   alignment: [],
   speakers: [],
   speakerColors: {},
+  speakerOutlineColors: {},
+  speakerOutlineThickness: {},
+  speakerFontFamilies: {},
+  speakerFontSizes: {},
   currentTime: 0,
   videoDuration: 0,
   seekRequest: null,
+  scrollToCaptionRequest: null,
   error: null,
   transcribeProgress: 0,
   transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
@@ -174,17 +237,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     let changed = false
     const next = store.captions.map((c) => {
       if (c.id !== id) return c
-      const merged = { ...c, ...patch }
-      if (
-        merged.text === c.text &&
-        merged.start === c.start &&
-        merged.end === c.end &&
-        merged.speaker === c.speaker
-      ) {
-        return c
-      }
+      if (!patchDiffers(c, patch)) return c
       changed = true
-      return merged
+      return { ...c, ...patch }
     })
     if (!changed) return store
     const history = [...store.history, store.captions].slice(-HISTORY_LIMIT)
@@ -214,9 +269,32 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     }
   }),
   setAlignment: (results) => set({ alignment: results }),
-  setSpeakers: (labels) => set({ speakers: labels, speakerColors: buildPalette(labels) }),
+  setSpeakers: (labels) => set({
+    speakers: labels,
+    speakerColors: buildPalette(labels),
+    speakerOutlineColors: buildOutlinePalette(labels),
+    speakerOutlineThickness: {},
+    speakerFontFamilies: {},
+    speakerFontSizes: {},
+  }),
   setSpeakerColor: (label, color) =>
     set((store) => ({ speakerColors: { ...store.speakerColors, [label]: color } })),
+  setSpeakerOutlineColor: (label, color) =>
+    set((store) => ({
+      speakerOutlineColors: { ...store.speakerOutlineColors, [label]: color },
+    })),
+  setSpeakerOutlineThickness: (label, value) =>
+    set((store) => ({
+      speakerOutlineThickness: { ...store.speakerOutlineThickness, [label]: value },
+    })),
+  setSpeakerFontFamily: (label, family) =>
+    set((store) => ({
+      speakerFontFamilies: { ...store.speakerFontFamilies, [label]: family },
+    })),
+  setSpeakerFontSize: (label, size) =>
+    set((store) => ({
+      speakerFontSizes: { ...store.speakerFontSizes, [label]: size },
+    })),
   addSpeaker: (label) => set((store) => {
     const trimmed = label.trim()
     if (!trimmed || store.speakers.includes(trimmed)) return store
@@ -224,12 +302,64 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     const color = SPEAKER_PALETTE[(nextSpeakers.length - 1) % SPEAKER_PALETTE.length]
     return {
       speakers: nextSpeakers,
+      speakerOutlineColors: {
+        ...store.speakerOutlineColors,
+        [trimmed]: DEFAULT_SPEAKER_OUTLINE,
+      },
       speakerColors: { ...store.speakerColors, [trimmed]: color },
+    }
+  }),
+  renameSpeaker: (oldLabel, newLabel) => set((store) => {
+    const trimmed = newLabel.trim()
+    if (!trimmed || trimmed === oldLabel) return store
+    if (!store.speakers.includes(oldLabel) || store.speakers.includes(trimmed)) return store
+
+    // Preserve ordering in the speakers list.
+    const speakers = store.speakers.map((s) => (s === oldLabel ? trimmed : s))
+
+    // Migrate every per-speaker map from old key to new key.
+    const migrate = <T,>(map: Record<string, T>): Record<string, T> => {
+      if (!(oldLabel in map)) return map
+      const next = { ...map }
+      next[trimmed] = next[oldLabel]
+      delete next[oldLabel]
+      return next
+    }
+    const speakerColors = migrate(store.speakerColors)
+    const speakerOutlineColors = migrate(store.speakerOutlineColors)
+    const speakerOutlineThickness = migrate(store.speakerOutlineThickness)
+    const speakerFontFamilies = migrate(store.speakerFontFamilies)
+    const speakerFontSizes = migrate(store.speakerFontSizes)
+
+    // Rewrite every caption that references the old label, history-aware.
+    let anyCaptionChanged = false
+    const captions = store.captions.map((c) => {
+      if (c.speaker !== oldLabel) return c
+      anyCaptionChanged = true
+      return { ...c, speaker: trimmed }
+    })
+    const history = anyCaptionChanged
+      ? [...store.history, store.captions].slice(-HISTORY_LIMIT)
+      : store.history
+    const future = anyCaptionChanged ? [] : store.future
+
+    return {
+      speakers,
+      speakerColors,
+      speakerOutlineColors,
+      speakerOutlineThickness,
+      speakerFontFamilies,
+      speakerFontSizes,
+      captions,
+      history,
+      future,
     }
   }),
   setCurrentTime: (t) => set((s) => (s.currentTime === t ? s : { currentTime: t })),
   setVideoDuration: (d) => set((s) => (s.videoDuration === d ? s : { videoDuration: d })),
   requestSeek: (t) => set((s) => (s.seekRequest === t ? s : { seekRequest: t })),
+  requestScrollToCaption: (id) =>
+    set((s) => (s.scrollToCaptionRequest === id ? s : { scrollToCaptionRequest: id })),
   setError: (msg) => set((s) => (s.error === msg ? s : { error: msg })),
   setTranscribeProgress: (p) => set((s) => (s.transcribeProgress === p ? s : { transcribeProgress: p })),
   setTranscribeConfig: (patch) => set((store) => ({ transcribeConfig: { ...store.transcribeConfig, ...patch } })),
@@ -241,6 +371,19 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       },
     })),
   setBurnStyle: (patch) => set((store) => ({ burnStyle: { ...store.burnStyle, ...patch } })),
+  loadSavedSession: (data) => set({
+    captions: data.captions,
+    speakers: data.speakers,
+    speakerColors: data.speakerColors,
+    speakerOutlineColors: data.speakerOutlineColors,
+    speakerOutlineThickness: data.speakerOutlineThickness,
+    speakerFontFamilies: data.speakerFontFamilies,
+    speakerFontSizes: data.speakerFontSizes,
+    alignment: data.alignment,
+    burnStyle: data.burnStyle,
+    history: [],
+    future: [],
+  }),
   pushToast: (kind, message) => {
     const id = ++_toastSeq
     set((store) => ({ toasts: [...store.toasts, { id, kind, message }] }))
@@ -252,8 +395,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     return {
       state: 'idle', jobId: null, videoFile: null, videoUrl: null,
       captions: [], history: [], future: [],
-      alignment: [], speakers: [], speakerColors: {},
-      currentTime: 0, videoDuration: 0, seekRequest: null, error: null,
+      alignment: [], speakers: [], speakerColors: {}, speakerOutlineColors: {},
+      speakerOutlineThickness: {}, speakerFontFamilies: {}, speakerFontSizes: {},
+      currentTime: 0, videoDuration: 0, seekRequest: null, scrollToCaptionRequest: null, error: null,
       transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
     }
   }),

@@ -16,22 +16,36 @@ Captionaut needs a GPU. The startup check will refuse to run on a CPU-only machi
 
 ## Getting it running
 
-There are two supported paths: a native bootstrap (fastest to iterate) and Docker (good for hosting on a remote GPU box).
+Two supported paths: a native install (fastest to iterate), or Docker (good for hosting on a remote GPU box).
 
 ### Native
+
+Prereqs: Python 3.11+, Node 20+, FFmpeg on `PATH`.
 
 ```bash
 git clone https://github.com/catherinepereira/captionaut
 cd captionaut
-./start.sh          # macOS / Linux
-# .\start.ps1       # Windows
+
+# Backend
+python -m venv .venv
+.venv/Scripts/activate                # macOS/Linux: source .venv/bin/activate
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install -r backend/requirements.txt
+
+# Frontend
+cd frontend && npm install && cd ..
 ```
 
-The bootstrap script checks your hardware, creates a Python venv, installs CUDA torch and the backend requirements, installs the frontend dependencies, and then starts both servers. First run takes a few minutes because PyTorch is a big download. Subsequent runs start in seconds.
+On Apple Silicon, skip the `--index-url` argument: the default torch wheel already includes MPS.
 
-Once it's up, open <http://localhost:5200>. The first transcription downloads the Whisper `base` model (~145 MB) into `~/.cache/whisper`.
+Then in two terminals:
 
-You'll need Python 3.11+, Node 20+, and FFmpeg on `PATH`. The script tells you exactly what to install if something is missing.
+```bash
+python -m backend --port 8010         # terminal 1
+cd frontend && npm run dev            # terminal 2
+```
+
+Open <http://localhost:5200>. The first transcription downloads the Whisper `base` model (~145 MB) into `~/.cache/whisper`.
 
 ### Docker
 
@@ -43,9 +57,7 @@ The Dockerfile is multi-stage: a Node build stage compiles the React bundle, the
 
 You need the NVIDIA Container Toolkit on the host. Apple Silicon and AMD aren't supported through Docker because GPU passthrough into the container only works for NVIDIA. Mac users should use the native path above.
 
-If you want to host this somewhere with a GPU (a workstation, a rented GPU instance, whatever), the Docker setup is the way. It assumes a trusted network: there's no auth, so don't expose it to the public internet without putting it behind something.
-
-If you want to develop against the containerized backend, run the frontend natively (`cd frontend && npm run dev`) and it'll proxy `/api` to the container on `:8010`.
+If you want to host this somewhere with a GPU (a workstation, a rented GPU instance), the Docker setup is the way. It assumes a trusted network: there's no auth, so don't expose it to the public internet without putting it behind something.
 
 ## What's in the box
 
@@ -53,6 +65,8 @@ If you want to develop against the containerized backend, run the frontend nativ
 - Whisper transcription with a live progress bar driven by Server-Sent Events
 - All five Whisper model sizes, with a prompt field to bias the model toward names and jargon
 - Optional speaker diarization via pyannote, with per-speaker colors in both the editor and the burned-in video
+- Manual speaker assignment per caption, plus bulk-assign across selected captions
+- Per-caption text and outline color overrides on top of speaker colors
 - Optional vocal isolation via Demucs for noisy source audio
 - Optional script alignment: drop a `.txt` or `.srt` and Captionaut shows you where the transcription diverges
 - Inline caption editor with click-to-seek, keyboard shortcuts, auto-scrolling, undo/redo, bulk operations (multi-select, shift, merge, split, delete), and an "Add caption at playhead" button
@@ -100,18 +114,17 @@ frontend/src/
 ├── components/              UI pieces
 ├── hooks/                   useVideoPipeline, useGlobalKeybinds, useProjectPersistence
 ├── stores/captionStore.ts   Zustand store with undo/redo + persistence
-├── utils/                   pure helpers + their tests
+├── utils/                   pure helpers
 ├── api.ts                   same-origin /api wrapper
 └── config.ts                mirrors the dev port constants from backend/
 
 docker-compose.yml           single-service CUDA backend with the built frontend
 Dockerfile                   the image
-start.sh / start.ps1         native bootstrap scripts
 ```
 
 ## How it actually works
 
-A handful of things were either tricky or non-obvious. The [docs/dev/architecture.md](docs/dev/architecture.md) file goes into more detail; the short version:
+A handful of things were either tricky or non-obvious:
 
 The frontend and backend always run on the same origin. In dev that's because Vite proxies `/api` requests through to FastAPI. In the Docker image it's because FastAPI serves the built React bundle as static files. There is no CORS configuration anywhere. This made a class of "Failed to fetch" bugs disappear.
 
@@ -120,18 +133,6 @@ Whisper doesn't expose a progress callback, so we monkey-patch the `tqdm` instan
 PyTorch's bundled `torchcodec` package can't load FFmpeg 8's shared libraries on Windows. Both Demucs (`torchaudio.save`) and pyannote (its file loader) trip on this. The fix in both cases is to decode the audio ourselves with an FFmpeg subprocess into a numpy array, then hand the tensor to the model. There's a side benefit: when denoise and diarize are both enabled, the audio is decoded once and the vocal-isolated tensor flows from Demucs to Whisper to pyannote without ever touching disk.
 
 The job cache is a bounded `OrderedDict` of the 50 most recent jobs. When a job is evicted, every file it tracked on disk (the upload, the burned output, the denoised audio) is deleted alongside it. An in-flight guard prevents the cache from yanking files out from under a running transcription.
-
-## Development
-
-```bash
-python -m pytest backend/tests        # backend tests
-cd frontend && npm test               # frontend tests
-python -m ruff check backend          # lint
-python -m ruff format backend         # format
-pre-commit install                    # one-time hook setup
-```
-
-The pre-commit config runs ruff on the backend and prettier on the frontend.
 
 ## License
 

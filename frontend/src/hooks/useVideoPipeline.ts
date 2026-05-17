@@ -1,18 +1,13 @@
 import { useEffect, useRef } from 'react'
 import {
-  uploadVideo, transcribeJob, alignScript, streamProgress, errMsg,
+  uploadVideo, transcribeJob, alignScript, streamProgress, errMsg, checkCapabilities,
   type StreamHandle,
 } from '../api'
 import { useCaptionStore } from '../stores/captionStore'
-import { findByFingerprint, fingerprint, clearProject } from '../utils/projects'
-import { fetchCapabilities, pushModelDownloadToasts } from '../utils/toasts'
+import { findByFingerprint, fingerprint, clearProject, type SavedProject } from '../utils/projects'
+import { pushModelDownloadToasts } from '../utils/toasts'
 
-/**
- * The upload → configure → transcribe → align pipeline as a single hook.
- *
- * Exposes two callbacks (`handleVideoFile`, `handleStartTranscription`) that
- * App.tsx wires into the DropZone and ConfigScreen.
- */
+// Upload → configure → transcribe → align pipeline as a single hook.
 export function useVideoPipeline() {
   const progressStreamRef = useRef<StreamHandle | null>(null)
   const state = useCaptionStore((s) => s.state)
@@ -32,12 +27,39 @@ export function useVideoPipeline() {
     if (state === 'idle') progressStreamRef.current?.close()
   }, [state])
 
-  const handleVideoFile = async (file: File) => {
-    reset()
+  // Restore captions immediately, then re-upload in the background to mint
+  // a fresh jobId for burn / re-align.
+  const restoreFromSaved = (file: File, prior: SavedProject) => {
     setVideoFile(file)
 
-    // If we've seen this exact file before, offer to restore the prior session
-    // instead of re-uploading and re-transcribing.
+    const store = useCaptionStore.getState()
+    store.loadSavedSession({
+      captions: prior.captions,
+      speakers: prior.speakers,
+      speakerColors: prior.speakerColors,
+      speakerOutlineColors: prior.speakerOutlineColors ?? {},
+      speakerOutlineThickness: prior.speakerOutlineThickness ?? {},
+      speakerFontFamilies: prior.speakerFontFamilies ?? {},
+      speakerFontSizes: prior.speakerFontSizes ?? {},
+      alignment: prior.alignment,
+      burnStyle: prior.burnStyle,
+    })
+    setState('editing')
+
+    // Once the upload completes, delete the prior saved project so auto-save
+    // writes a fresh one under the new jobId.
+    uploadVideo(file)
+      .then((id) => {
+        setJobId(id)
+        clearProject(prior.jobId)
+      })
+      .catch((err) => setError(`Background upload failed: ${errMsg(err)}`))
+  }
+
+  const handleVideoFile = async (file: File) => {
+    reset()
+
+    // If we've seen this exact file before, offer to restore the prior session.
     const prior = findByFingerprint(fingerprint(file))
     if (prior) {
       const confirmed = window.confirm(
@@ -46,27 +68,12 @@ export function useVideoPipeline() {
         `${prior.captions.length} captions${prior.speakers.length ? `, ${prior.speakers.length} speakers` : ''}.`,
       )
       if (confirmed) {
-        setCaptions(prior.captions)
-        setSpeakers(prior.speakers)
-        // setSpeakers builds a default palette; override with user's saved colors.
-        Object.entries(prior.speakerColors).forEach(([label, color]) => {
-          useCaptionStore.getState().setSpeakerColor(label, color)
-        })
-        useCaptionStore.getState().setAlignment(prior.alignment)
-        useCaptionStore.getState().setBurnStyle(prior.burnStyle)
-        setState('editing')
-        // Re-upload silently in the background so burn-in / re-align work.
-        // The fresh jobId replaces the prior one once upload completes.
-        uploadVideo(file)
-          .then((id) => {
-            setJobId(id)
-            clearProject(prior.jobId)
-          })
-          .catch((err) => setError(`Background upload failed: ${errMsg(err)}`))
+        restoreFromSaved(file, prior)
         return
       }
     }
 
+    setVideoFile(file)
     setState('uploading')
     try {
       const id = await uploadVideo(file)
@@ -78,20 +85,37 @@ export function useVideoPipeline() {
     }
   }
 
+  // Recent-projects entry point: user picks a card, then picks a file.
+  // Confirm if the file's fingerprint differs from the saved one.
+  const continueProjectWithFile = (prior: SavedProject, file: File) => {
+    reset()
+    const fp = fingerprint(file)
+    if (fp !== prior.videoFingerprint) {
+      const confirmed = window.confirm(
+        `This file doesn't match "${prior.videoFileName}" (saved size differs).\n\n` +
+        `Use it anyway? Captions will be restored, but they may not line up if the video is different.`,
+      )
+      if (!confirmed) {
+        setState('idle')
+        return
+      }
+    }
+    restoreFromSaved(file, prior)
+  }
+
   const handleStartTranscription = async () => {
     const { jobId, transcribeConfig } = useCaptionStore.getState()
     if (!jobId) return
 
-    // Surface a toast if pyannote / Demucs models need to download.
     if (transcribeConfig.diarization.enabled || transcribeConfig.denoise) {
       try {
-        const caps = await fetchCapabilities()
+        const caps = await checkCapabilities()
         pushModelDownloadToasts(caps, {
           diarize: transcribeConfig.diarization.enabled,
           denoise: transcribeConfig.denoise,
         })
       } catch {
-        // Toast hint failure is non-fatal; transcription proceeds anyway.
+        // Non-fatal: the toast hint is just an affordance.
       }
     }
 
@@ -129,5 +153,5 @@ export function useVideoPipeline() {
     }
   }
 
-  return { handleVideoFile, handleStartTranscription }
+  return { handleVideoFile, handleStartTranscription, continueProjectWithFile }
 }

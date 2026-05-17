@@ -7,6 +7,9 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Node
 node_modules/
@@ -18,16 +21,16 @@ frontend/dist/
 # Local uploads / outputs (user data, never committed)
 backend/uploads/
 backend/outputs/
-backend/backend.log
-backend/backend.log.out
-
-# Tool caches
-.pytest_cache/
-.ruff_cache/
+*.log
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
 
 # Env
 .env

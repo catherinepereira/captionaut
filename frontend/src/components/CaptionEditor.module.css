@@ -5,7 +5,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 140px);
+  max-height: calc(100vh - 480px);
   position: relative;
 }
 
@@ -226,89 +226,30 @@
   border-color: var(--purple-light);
 }
 
-.colorBtn {
+.styleSlot {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+}
+
+.paletteBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: var(--bg);
-  border: 1px dashed var(--border);
-  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
   cursor: pointer;
   padding: 0;
 }
 
-.colorBtn:hover {
+.paletteBtn:hover,
+.paletteBtn:focus-visible {
   border-color: var(--purple-light);
-}
-
-.colorBtnActive {
-  border-style: solid;
-  border-color: var(--purple-light);
-}
-
-.colorSwatch {
-  display: block;
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  border: 1px solid var(--border);
-}
-
-.colorBtnActive .colorSwatch {
-  border: none;
-}
-
-.overridePopover {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
-  z-index: 5;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 160px;
-}
-
-.overrideRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.overrideLabel {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.overrideClear {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.overrideClear:hover:not(:disabled) {
-  border-color: var(--red);
-  color: var(--red);
-}
-
-.overrideClear:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  color: var(--purple-light);
 }
 
 .checkbox {

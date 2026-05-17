@@ -8,6 +8,7 @@ import { AppHeader } from './components/AppHeader'
 import { LandingHero } from './components/LandingHero'
 import { BusyView } from './components/BusyView'
 import { VideoPlayer } from './components/VideoPlayer'
+import { CaptionTimeline } from './components/CaptionTimeline'
 import { CaptionEditor } from './components/CaptionEditor'
 import { Toolbar } from './components/Toolbar'
 import { ErrorBanner } from './components/ErrorBanner'
@@ -15,6 +16,7 @@ import { ConfigScreen } from './components/ConfigScreen'
 import { SpeakerPanel } from './components/SpeakerPanel'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ToastStack } from './components/ToastStack'
+import { ProjectsPanel } from './components/ProjectsPanel'
 import styles from './App.module.css'
 
 export function App() {
@@ -22,7 +24,7 @@ export function App() {
   const reset = useCaptionStore((s) => s.reset)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const { handleVideoFile, handleStartTranscription } = useVideoPipeline()
+  const { handleVideoFile, handleStartTranscription, continueProjectWithFile } = useVideoPipeline()
 
   useGlobalKeybinds()
   useProjectPersistence()
@@ -54,6 +56,7 @@ export function App() {
           <div className={styles.editor}>
             <div className={styles.editorLeft}>
               <VideoPlayer />
+              <CaptionTimeline />
               <Toolbar />
             </div>
             <div className={styles.editorRight}>
@@ -64,6 +67,7 @@ export function App() {
         )}
       </main>
 
+      <ProjectsPanel onContinue={continueProjectWithFile} />
       <ToastStack />
     </div>
   )

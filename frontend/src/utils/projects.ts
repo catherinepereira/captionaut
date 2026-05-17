@@ -18,6 +18,10 @@ export interface SavedProject {
   captions: Caption[]
   speakers: string[]
   speakerColors: Record<string, string>
+  speakerOutlineColors: Record<string, string>
+  speakerOutlineThickness: Record<string, number>
+  speakerFontFamilies: Record<string, string>
+  speakerFontSizes: Record<string, number>
   alignment: AlignmentResult[]
   burnStyle: BurnStyle
 }

@@ -10,6 +10,10 @@ export function useProjectPersistence(): void {
   const captions = useCaptionStore((s) => s.captions)
   const speakers = useCaptionStore((s) => s.speakers)
   const speakerColors = useCaptionStore((s) => s.speakerColors)
+  const speakerOutlineColors = useCaptionStore((s) => s.speakerOutlineColors)
+  const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
+  const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
+  const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
   const alignment = useCaptionStore((s) => s.alignment)
   const burnStyle = useCaptionStore((s) => s.burnStyle)
 
@@ -23,8 +27,17 @@ export function useProjectPersistence(): void {
       captions,
       speakers,
       speakerColors,
+      speakerOutlineColors,
+      speakerOutlineThickness,
+      speakerFontFamilies,
+      speakerFontSizes,
       alignment,
       burnStyle,
     })
-  }, [jobId, videoFile, captions, speakers, speakerColors, alignment, burnStyle])
+  }, [
+    jobId, videoFile, captions, speakers,
+    speakerColors, speakerOutlineColors, speakerOutlineThickness,
+    speakerFontFamilies, speakerFontSizes,
+    alignment, burnStyle,
+  ])
 }

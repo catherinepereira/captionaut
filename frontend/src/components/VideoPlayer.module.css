@@ -13,19 +13,14 @@
   object-fit: contain;
 }
 
+/* No background block: just outlined glyphs over the frame, matching the
+   ASS burn-in output. Positioning (left/top/transform/text-align/max-width)
+   is supplied inline based on the user's X/Y/align settings. */
 .overlay {
   position: absolute;
-  bottom: 48px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.75);
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
-  padding: 6px 16px;
-  border-radius: 6px;
-  text-align: center;
+  font-weight: 700;
+  padding: 0;
   pointer-events: none;
   white-space: pre-wrap;
-  max-width: 90%;
+  letter-spacing: 0.01em;
 }

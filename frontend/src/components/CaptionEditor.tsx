@@ -1,10 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useCaptionStore, type Caption } from '../stores/captionStore'
+import { useCaptionStore, type Caption, type BurnStyle } from '../stores/captionStore'
 import { alignScript, errMsg } from '../api'
 import {
   findActiveCaptionId, shiftSelected, mergeSelected, splitAt, deleteSelected,
   insertCaptionAt,
 } from '../utils/captions'
+import { StyleEditorPopover, type StyleValues } from './StyleEditorPopover'
+import { PaletteIcon } from './icons'
 import styles from './CaptionEditor.module.css'
 
 const SCRIPT_EXT_RE = /\.(txt|srt)$/i
@@ -30,8 +32,13 @@ interface RowProps {
   isMismatched: boolean
   isSelected: boolean
   speakerColor: string | null
+  speakerOutlineColor: string | null
+  speakerOutlineThickness: number | null
+  speakerFontFamily: string | null
+  speakerFontSize: number | null
   effectiveTextColor: string | null
   speakers: string[]
+  burnStyle: BurnStyle
   autoEditText: boolean
   onSeek: (t: number) => void
   onToggleSelect: (id: number, e: React.MouseEvent) => void
@@ -40,13 +47,16 @@ interface RowProps {
 }
 
 const CaptionRow = memo(function CaptionRow({
-  caption, isActive, isMismatched, isSelected, speakerColor, effectiveTextColor,
-  speakers, autoEditText, onSeek, onToggleSelect, onAutoEditConsumed, registerRef,
+  caption, isActive, isMismatched, isSelected, speakerColor, speakerOutlineColor,
+  speakerOutlineThickness, speakerFontFamily, speakerFontSize,
+  effectiveTextColor,
+  speakers, burnStyle, autoEditText,
+  onSeek, onToggleSelect, onAutoEditConsumed, registerRef,
 }: RowProps) {
   const updateCaption = useCaptionStore((s) => s.updateCaption)
   const [editingField, setEditingField] = useState<'text' | 'start' | 'end' | null>(null)
   const [draft, setDraft] = useState('')
-  const [overrideOpen, setOverrideOpen] = useState(false)
+  const [styleOpen, setStyleOpen] = useState(false)
 
   useEffect(() => {
     if (autoEditText) {
@@ -56,17 +66,6 @@ const CaptionRow = memo(function CaptionRow({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoEditText])
-
-  // Close the override popover when the user clicks anywhere outside it.
-  useEffect(() => {
-    if (!overrideOpen) return
-    const onDoc = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest(`.${styles.metaRow}`)) setOverrideOpen(false)
-    }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
-  }, [overrideOpen])
 
   const startEdit = (field: 'text' | 'start' | 'end', e: React.MouseEvent) => {
     e.stopPropagation()
@@ -144,56 +143,57 @@ const CaptionRow = memo(function CaptionRow({
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
+      </div>
 
+      <div className={styles.styleSlot} onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
-          className={`${styles.colorBtn} ${caption.color_override ? styles.colorBtnActive : ''}`}
-          aria-label={caption.color_override ? 'Edit color override' : 'Set color override'}
-          title="Per-caption color override"
-          onClick={(e) => { e.stopPropagation(); setOverrideOpen((v) => !v) }}
+          className={styles.paletteBtn}
+          aria-label="Edit caption style"
+          title="Edit style"
+          onClick={(e) => { e.stopPropagation(); setStyleOpen((v) => !v) }}
         >
-          <span
-            className={styles.colorSwatch}
-            style={{ background: caption.color_override ?? 'transparent' }}
-            aria-hidden="true"
-          />
+          <PaletteIcon />
         </button>
 
-        {overrideOpen && (
-          <div
-            className={styles.overridePopover}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label="Color override"
-          >
-            <label className={styles.overrideRow}>
-              <span className={styles.overrideLabel}>Text</span>
-              <input
-                type="color"
-                value={caption.color_override ?? '#ffffff'}
-                onChange={(e) => updateCaption(caption.id, { color_override: e.target.value })}
-              />
-            </label>
-            <label className={styles.overrideRow}>
-              <span className={styles.overrideLabel}>Outline</span>
-              <input
-                type="color"
-                value={caption.outline_override ?? '#000000'}
-                onChange={(e) => updateCaption(caption.id, { outline_override: e.target.value })}
-              />
-            </label>
-            <button
-              type="button"
-              className={styles.overrideClear}
-              onClick={() => {
-                updateCaption(caption.id, { color_override: null, outline_override: null })
-                setOverrideOpen(false)
-              }}
-              disabled={!caption.color_override && !caption.outline_override}
-            >
-              Clear override
-            </button>
-          </div>
+        {styleOpen && (
+          <StyleEditorPopover
+            variant="caption"
+            values={{
+              color: caption.color_override ?? null,
+              outlineColor: caption.outline_override ?? null,
+              outlineThickness: caption.outline_thickness ?? null,
+              fontFamily: caption.font_family ?? null,
+              fontSize: caption.font_size ?? null,
+            }}
+            defaults={{
+              color: speakerColor ?? burnStyle.color,
+              outlineColor: speakerOutlineColor ?? burnStyle.outlineColor,
+              outlineThickness: speakerOutlineThickness ?? burnStyle.outlineThickness,
+              fontFamily: speakerFontFamily ?? burnStyle.fontFamily,
+              fontSize: speakerFontSize ?? burnStyle.fontSize,
+            }}
+            onChange={(patch: Partial<StyleValues>) => {
+              const next: Parameters<typeof updateCaption>[1] = {}
+              if ('color' in patch) next.color_override = patch.color
+              if ('outlineColor' in patch) next.outline_override = patch.outlineColor
+              if ('outlineThickness' in patch) next.outline_thickness = patch.outlineThickness
+              if ('fontFamily' in patch) next.font_family = patch.fontFamily
+              if ('fontSize' in patch) next.font_size = patch.fontSize
+              updateCaption(caption.id, next)
+            }}
+            onClear={() => {
+              updateCaption(caption.id, {
+                color_override: null,
+                outline_override: null,
+                outline_thickness: null,
+                font_family: null,
+                font_size: null,
+              })
+              setStyleOpen(false)
+            }}
+            onClose={() => setStyleOpen(false)}
+          />
         )}
       </div>
 
@@ -288,6 +288,11 @@ export function CaptionEditor() {
   const alignment = useCaptionStore((s) => s.alignment)
   const speakers = useCaptionStore((s) => s.speakers)
   const speakerColors = useCaptionStore((s) => s.speakerColors)
+  const speakerOutlineColors = useCaptionStore((s) => s.speakerOutlineColors)
+  const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
+  const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
+  const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
+  const burnStyle = useCaptionStore((s) => s.burnStyle)
   const requestSeek = useCaptionStore((s) => s.requestSeek)
   const undo = useCaptionStore((s) => s.undo)
   const redo = useCaptionStore((s) => s.redo)
@@ -301,7 +306,6 @@ export function CaptionEditor() {
   const [autoEditId, setAutoEditId] = useState<number | null>(null)
   const [bulkSpeakerOpen, setBulkSpeakerOpen] = useState(false)
 
-  // Close the bulk speaker dropdown on outside click.
   useEffect(() => {
     if (!bulkSpeakerOpen) return
     const onDoc = (e: MouseEvent) => {
@@ -353,6 +357,18 @@ export function CaptionEditor() {
     if (activeId == null) return
     rowRefs.current.get(activeId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [activeId])
+
+  // External requests (e.g. clicking a timeline block) scroll the row in too.
+  const scrollToCaptionRequest = useCaptionStore((s) => s.scrollToCaptionRequest)
+  const requestScrollToCaption = useCaptionStore((s) => s.requestScrollToCaption)
+  useEffect(() => {
+    if (scrollToCaptionRequest == null) return
+    rowRefs.current.get(scrollToCaptionRequest)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+    requestScrollToCaption(null)
+  }, [scrollToCaptionRequest, requestScrollToCaption])
 
   // Selection survives caption edits but is dropped when the entire captions
   // array is replaced (transcribe / reset / undo to pre-edit state).
@@ -545,8 +561,15 @@ export function CaptionEditor() {
           </p>
         )}
         {captions.map((cap) => {
-          const speakerColor = cap.speaker ? speakerColors[cap.speaker] ?? null : null
+          const sp = cap.speaker
+          const speakerColor = sp ? speakerColors[sp] ?? null : null
+          const speakerOutlineColor = sp ? speakerOutlineColors[sp] ?? null : null
+          const speakerOutline = sp ? speakerOutlineThickness[sp] ?? null : null
+          const speakerFontFamily = sp ? speakerFontFamilies[sp] ?? null : null
+          const speakerFontSize = sp ? speakerFontSizes[sp] ?? null : null
+
           const effectiveTextColor = cap.color_override ?? speakerColor
+
           return (
             <CaptionRow
               key={cap.id}
@@ -555,8 +578,13 @@ export function CaptionEditor() {
               isMismatched={mismatchedIds.has(cap.id)}
               isSelected={selected.has(cap.id)}
               speakerColor={speakerColor}
+              speakerOutlineColor={speakerOutlineColor}
+              speakerOutlineThickness={speakerOutline}
+              speakerFontFamily={speakerFontFamily}
+              speakerFontSize={speakerFontSize}
               effectiveTextColor={effectiveTextColor}
               speakers={speakers}
+              burnStyle={burnStyle}
               autoEditText={autoEditId === cap.id}
               onSeek={requestSeek}
               onToggleSelect={handleToggleSelect}

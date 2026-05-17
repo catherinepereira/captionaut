@@ -2,8 +2,8 @@
 .github
 .claude
 .venv
-.pytest_cache
-.ruff_cache
+.vscode
+.idea
 __pycache__
 *.pyc
 *.pyo
@@ -15,13 +15,9 @@ docs
 !backend/**/*.md
 backend/uploads
 backend/outputs
-backend/__pycache__
-backend/**/__pycache__
-backend/tests
-start.ps1
-start.sh
+*.log
 .editorconfig
-.prettierrc.json
-.pre-commit-config.yaml
 .gitattributes
 .gitignore
+.env
+.env.local

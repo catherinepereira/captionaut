@@ -1,10 +1,9 @@
-"""Bounded in-memory job cache shared by every endpoint.
+"""Bounded in-memory job cache.
 
-Each job tracks its uploaded video path, burn-in output path, denoised audio
-cache path, current progress, status, captions, and speaker list. When the
-LRU evicts the oldest non-active job, its disk artifacts are deleted alongside
-the entry. An in-flight guard prevents eviction from yanking files out from
-under a transcription that's mid-run.
+Tracks per-job paths (upload, burn output, denoised audio), progress, status,
+captions, and speakers. When the LRU evicts the oldest non-active job, its
+disk artifacts are deleted alongside the entry. An in-flight guard prevents
+eviction during a running transcription.
 """
 
 from __future__ import annotations
@@ -26,11 +25,6 @@ _active_jobs: set[str] = set()
 
 
 def get_dirs():
-    """Resolve UPLOAD_DIR / OUTPUT_DIR lazily.
-
-    Imported lazily so tests can swap CAPTIONAUT_DATA_DIR before backend.main
-    initializes its module-level paths.
-    """
     from ..main import OUTPUT_DIR, UPLOAD_DIR
 
     return UPLOAD_DIR, OUTPUT_DIR

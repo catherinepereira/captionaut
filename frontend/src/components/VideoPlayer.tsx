@@ -3,6 +3,22 @@ import { useCaptionStore } from '../stores/captionStore'
 import { findActiveCaption } from '../utils/captions'
 import styles from './VideoPlayer.module.css'
 
+// Multi-stop CSS text-shadow approximating an N-pixel ASS outline.
+function buildOutlineShadow(color: string, thickness: number): string | undefined {
+  if (thickness <= 0) return undefined
+  // The overlay font is rendered at 0.5x the burn size, so halve thickness too.
+  const radius = Math.max(0.5, thickness * 0.5)
+  const steps = Math.max(8, Math.round(radius * 4))
+  const parts: string[] = []
+  for (let i = 0; i < steps; i++) {
+    const angle = (i * Math.PI * 2) / steps
+    const x = (Math.cos(angle) * radius).toFixed(2)
+    const y = (Math.sin(angle) * radius).toFixed(2)
+    parts.push(`${x}px ${y}px 0 ${color}`)
+  }
+  return parts.join(', ')
+}
+
 export function VideoPlayer() {
   const videoUrl = useCaptionStore((s) => s.videoUrl)
   const captions = useCaptionStore((s) => s.captions)
@@ -11,6 +27,12 @@ export function VideoPlayer() {
   const setCurrentTime = useCaptionStore((s) => s.setCurrentTime)
   const setVideoDuration = useCaptionStore((s) => s.setVideoDuration)
   const requestSeek = useCaptionStore((s) => s.requestSeek)
+  const speakerColors = useCaptionStore((s) => s.speakerColors)
+  const speakerOutlineColors = useCaptionStore((s) => s.speakerOutlineColors)
+  const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
+  const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
+  const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
+  const burnStyle = useCaptionStore((s) => s.burnStyle)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -68,7 +90,6 @@ export function VideoPlayer() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const speakerColors = useCaptionStore((s) => s.speakerColors)
   const activeCaption = useMemo(
     () => findActiveCaption(captions, currentTime),
     [captions, currentTime],
@@ -76,16 +97,50 @@ export function VideoPlayer() {
 
   if (!videoUrl) return null
 
-  const overlayColor =
-    activeCaption?.color_override ??
-    (activeCaption?.speaker ? speakerColors[activeCaption.speaker] : null) ??
-    null
-  const overlayOutline = activeCaption?.outline_override ?? null
+  // Resolve effective values. Per-caption override > speaker setting > global.
+  const sp = activeCaption?.speaker ?? null
+  const speakerTextColor = sp ? speakerColors[sp] : undefined
+  const speakerOutlineColor = sp ? speakerOutlineColors[sp] : undefined
+  const speakerThickness = sp ? speakerOutlineThickness[sp] : undefined
+  const speakerFontFamily = sp ? speakerFontFamilies[sp] : undefined
+  const speakerFontSize = sp ? speakerFontSizes[sp] : undefined
 
-  const overlayStyle: React.CSSProperties = {}
-  if (overlayColor) overlayStyle.color = overlayColor
-  if (overlayOutline) {
-    overlayStyle.textShadow = `0 0 2px ${overlayOutline}, 0 0 4px ${overlayOutline}`
+  const textColor =
+    activeCaption?.color_override ?? speakerTextColor ?? burnStyle.color
+  const outlineColor =
+    activeCaption?.outline_override ?? speakerOutlineColor ?? burnStyle.outlineColor
+  const thickness =
+    activeCaption?.outline_thickness ?? speakerThickness ?? burnStyle.outlineThickness
+
+  const fontFamily =
+    activeCaption?.font_family ?? speakerFontFamily ?? burnStyle.fontFamily
+  const fontSizePx = Math.round(
+    (activeCaption?.font_size ?? speakerFontSize ?? burnStyle.fontSize) * 0.5,
+  )
+
+  // Map (posX, posY, align) to CSS placement that matches the ASS \pos +
+  // bottom-row alignment semantics: (x,y) is the bottom of the text bbox;
+  // align picks which horizontal edge of the bbox sits at x.
+  const align = burnStyle.align
+  const overlayPlacement: React.CSSProperties = {
+    left: `${burnStyle.posX}%`,
+    top: `${burnStyle.posY}%`,
+    textAlign: align,
+    maxWidth: align === 'center' ? '90%' : '50%',
+    transform: (() => {
+      const ty = '-100%'
+      if (align === 'center') return `translate(-50%, ${ty})`
+      if (align === 'right') return `translate(-100%, ${ty})`
+      return `translate(0%, ${ty})`
+    })(),
+  }
+
+  const overlayStyle: React.CSSProperties = {
+    color: textColor,
+    fontFamily,
+    fontSize: `${fontSizePx}px`,
+    textShadow: buildOutlineShadow(outlineColor, thickness),
+    ...overlayPlacement,
   }
 
   return (

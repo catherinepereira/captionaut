@@ -6,15 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "jsdom": "^25.0.1",
     "typescript": "~6.0.2",
-    "vite": "^5.4.21",
-    "vitest": "^2.1.9"
+    "vite": "^5.4.21"
   },
   "dependencies": {
     "@types/react": "^19.2.14",

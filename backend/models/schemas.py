@@ -11,6 +11,9 @@ class Caption(BaseModel):
     speaker: str | None = None
     color_override: str | None = None
     outline_override: str | None = None
+    outline_thickness: float | None = None
+    font_family: str | None = None
+    font_size: int | None = None
 
 
 ModelSize = Literal["tiny", "base", "small", "medium", "large"]
@@ -42,15 +45,18 @@ class AlignmentResult(BaseModel):
     similarity: float
 
 
-Position = Literal["top", "middle", "bottom"]
+HorizontalAlign = Literal["left", "center", "right"]
 
 
 class BurnStyle(BaseModel):
     fontFamily: str = "Arial"
     fontSize: int = 48
-    color: str = "#FFFFFF"
-    outlineColor: str = "#000000"
-    position: Position = "bottom"
+    color: str = "#000000"
+    outlineColor: str = "#FFFFFF"
+    outlineThickness: float = 3.0
+    posX: float = 50.0  # 0..100, percent of video width
+    posY: float = 90.0  # 0..100, percent of video height
+    align: HorizontalAlign = "center"
 
 
 class BurnRequest(BaseModel):
@@ -58,6 +64,10 @@ class BurnRequest(BaseModel):
     captions: list[Caption]
     style: BurnStyle | None = None
     speaker_colors: dict[str, str] | None = None
+    speaker_outline_colors: dict[str, str] | None = None
+    speaker_outline_thickness: dict[str, float] | None = None
+    speaker_font_families: dict[str, str] | None = None
+    speaker_font_sizes: dict[str, int] | None = None
 
 
 class ExportRequest(BaseModel):

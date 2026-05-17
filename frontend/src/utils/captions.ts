@@ -47,7 +47,7 @@ export function mergeSelected(captions: Caption[], selected: Set<number>): Capti
   const picked = captions.filter((c) => selected.has(c.id))
   const start = Math.min(...picked.map((c) => c.start))
   const end = Math.max(...picked.map((c) => c.end))
-  // All merged captions need the same speaker label to keep it; otherwise drop it
+  // Keep the speaker label only if every merged caption agrees on it.
   const speakers = new Set(picked.map((c) => c.speaker ?? null))
   const speaker = speakers.size === 1 ? picked[0].speaker ?? null : null
   const merged: Caption = {
@@ -120,7 +120,6 @@ export function insertCaptionAt(
     speaker: null,
   }
 
-  // Insert at the correct sorted position.
   const idx = captions.findIndex((c) => c.start > start)
   const next_list =
     idx < 0 ? [...captions, inserted] : [...captions.slice(0, idx), inserted, ...captions.slice(idx)]

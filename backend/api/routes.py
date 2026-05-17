@@ -1,8 +1,3 @@
-"""Aggregates the per-resource sub-routers into a single APIRouter.
-
-Existing imports like `from backend.api.routes import router` keep working.
-"""
-
 from __future__ import annotations
 
 from fastapi import APIRouter

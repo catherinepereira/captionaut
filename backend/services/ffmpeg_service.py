@@ -76,6 +76,18 @@ def _safe_font_size(size: int) -> int:
     return max(12, min(200, n))
 
 
+def _safe_outline_thickness(thickness: float) -> float:
+    try:
+        n = float(thickness)
+    except (TypeError, ValueError):
+        return 3.0
+    if n != n:  # NaN
+        return 3.0
+    return max(0.0, min(20.0, n))
+
+
+
+
 def _escape_ass_text(text: str) -> str:
     """Sanitize caption text for an ASS Dialogue line.
 
@@ -112,12 +124,24 @@ def _sanitize_stderr(stderr: str) -> str:
     return " | ".join(tail)
 
 
-# ASS alignment numpad: 2=bottom-center, 5=middle-center, 8=top-center
-_POSITION_PARAMS = {
-    "top": {"alignment": 8, "margin_v": 30},
-    "middle": {"alignment": 5, "margin_v": 0},
-    "bottom": {"alignment": 2, "margin_v": 30},
-}
+# ASS alignment uses numpad layout: rows are top(7/8/9), middle(4/5/6),
+# bottom(1/2/3); columns are left/center/right. We anchor at the bottom row
+# (1/2/3) so the visual "position" point sits at the text baseline, then use
+# an inline \pos(x,y) override per caption to drop the text precisely.
+PLAY_RES_X = 1920
+PLAY_RES_Y = 1080
+
+_ALIGN_NUM = {"left": 1, "center": 2, "right": 3}
+
+
+def _clamp_pct(v: float, default: float) -> float:
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return default
+    if n != n:
+        return default
+    return max(0.0, min(100.0, n))
 
 
 _STYLE_NAME_RE = re.compile(r"[^A-Za-z0-9_]")
@@ -130,11 +154,21 @@ def _safe_style_name(label: str) -> str:
 
 
 def _style_line(
-    name: str, font: str, font_size: int, primary: str, outline: str, alignment: int, margin_v: int
+    name: str,
+    font: str,
+    font_size: int,
+    primary: str,
+    outline: str,
+    alignment: int,
+    outline_thickness: float,
 ) -> str:
+    # The 17th field (Outline) is the border thickness in pixels; ASS accepts
+    # floats. Shadow stays at 1 to match the prior look.
+    thickness = _safe_outline_thickness(outline_thickness)
+    thickness_str = f"{thickness:g}"
     return (
         f"Style: {name},{font},{font_size},{primary},&H000000FF,{outline},"
-        f"&H80000000,-1,0,0,0,100,100,0,0,1,3,1,{alignment},10,10,{margin_v},1"
+        f"&H80000000,-1,0,0,0,100,100,0,0,1,{thickness_str},1,{alignment},10,10,0,1"
     )
 
 
@@ -142,35 +176,53 @@ def _build_ass(
     captions: list[Caption],
     style: BurnStyle | None,
     speaker_colors: dict[str, str] | None = None,
+    speaker_outline_colors: dict[str, str] | None = None,
+    speaker_outline_thickness: dict[str, float] | None = None,
+    speaker_font_families: dict[str, str] | None = None,
+    speaker_font_sizes: dict[str, int] | None = None,
 ) -> str:
     st = style or BurnStyle()
     default_primary = _hex_to_ass_color(st.color)
-    outline = _hex_to_ass_color(st.outlineColor)
+    default_outline = _hex_to_ass_color(st.outlineColor)
     font = _safe_font(st.fontFamily)
     font_size = _safe_font_size(st.fontSize)
-    pos = _POSITION_PARAMS.get(st.position, _POSITION_PARAMS["bottom"])
-    alignment = pos["alignment"]
-    margin_v = pos["margin_v"]
+    outline_thickness = _safe_outline_thickness(st.outlineThickness)
+    alignment = _ALIGN_NUM.get(st.align, 2)
+    pos_x = round(_clamp_pct(st.posX, 50.0) * PLAY_RES_X / 100)
+    pos_y = round(_clamp_pct(st.posY, 90.0) * PLAY_RES_Y / 100)
 
     # One Style per detected speaker, plus Default for unattributed captions.
+    # Each speaker carries its own primary, outline, thickness, font, and size.
     speaker_style_names: dict[str, str] = {}
     style_lines: list[str] = [
-        _style_line("Default", font, font_size, default_primary, outline, alignment, margin_v),
+        _style_line(
+            "Default", font, font_size, default_primary, default_outline,
+            alignment, outline_thickness,
+        ),
     ]
     if speaker_colors:
         for label, color in speaker_colors.items():
             name = _safe_style_name(label)
             speaker_style_names[label] = name
             primary = _hex_to_ass_color(color)
+            outline_color = _hex_to_ass_color(
+                (speaker_outline_colors or {}).get(label, st.outlineColor)
+            )
+            sp_thickness = (speaker_outline_thickness or {}).get(label, outline_thickness)
+            sp_font = _safe_font((speaker_font_families or {}).get(label, font))
+            sp_size = _safe_font_size((speaker_font_sizes or {}).get(label, font_size))
             style_lines.append(
-                _style_line(name, font, font_size, primary, outline, alignment, margin_v)
+                _style_line(
+                    name, sp_font, sp_size, primary, outline_color,
+                    alignment, sp_thickness,
+                )
             )
 
     lines = [
         "[Script Info]",
         "ScriptType: v4.00+",
-        "PlayResX: 1920",
-        "PlayResY: 1080",
+        f"PlayResX: {PLAY_RES_X}",
+        f"PlayResY: {PLAY_RES_Y}",
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
@@ -185,18 +237,24 @@ def _build_ass(
         safe_text = _escape_ass_text(cap.text)
         style_name = speaker_style_names.get(cap.speaker or "", "Default")
 
-        # Per-caption color overrides take precedence over the speaker /
-        # default style. Emitted as inline `{\1c...\3c...}` tags so we don't
-        # have to mint a Style per caption.
-        override_tags = ""
+        # Per-caption overrides take precedence over the speaker / default
+        # style. Emitted as inline `{...}` tags so we don't have to mint a
+        # Style per caption. `\pos` anchors the line at the user-chosen
+        # X%/Y% point in the video frame.
+        override_tags = f"\\pos({pos_x},{pos_y})"
         primary_override = _hex_to_ass_inline_color(cap.color_override or "")
         outline_override = _hex_to_ass_inline_color(cap.outline_override or "")
         if primary_override:
             override_tags += f"\\1c{primary_override}"
         if outline_override:
             override_tags += f"\\3c{outline_override}"
-        if override_tags:
-            safe_text = f"{{{override_tags}}}{safe_text}"
+        if cap.outline_thickness is not None:
+            override_tags += f"\\bord{_safe_outline_thickness(cap.outline_thickness):g}"
+        if cap.font_family:
+            override_tags += f"\\fn{_safe_font(cap.font_family)}"
+        if cap.font_size is not None:
+            override_tags += f"\\fs{_safe_font_size(cap.font_size)}"
+        safe_text = f"{{{override_tags}}}{safe_text}"
 
         lines.append(
             f"Dialogue: 0,{_format_ass_ts(cap.start)},{_format_ass_ts(cap.end)},"
@@ -211,6 +269,10 @@ def burn_captions(
     output_path: str,
     style: BurnStyle | None = None,
     speaker_colors: dict[str, str] | None = None,
+    speaker_outline_colors: dict[str, str] | None = None,
+    speaker_outline_thickness: dict[str, float] | None = None,
+    speaker_font_families: dict[str, str] | None = None,
+    speaker_font_sizes: dict[str, int] | None = None,
 ) -> str:
     # Write the .ass next to the input video so we can hand ffmpeg a bare
     # filename for the `ass=` filter. Windows paths break libavfilter's
@@ -220,7 +282,15 @@ def burn_captions(
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".ass", delete=False, encoding="utf-8", dir=video_dir,
     ) as f:
-        f.write(_build_ass(captions, style, speaker_colors))
+        f.write(_build_ass(
+            captions,
+            style,
+            speaker_colors=speaker_colors,
+            speaker_outline_colors=speaker_outline_colors,
+            speaker_outline_thickness=speaker_outline_thickness,
+            speaker_font_families=speaker_font_families,
+            speaker_font_sizes=speaker_font_sizes,
+        ))
         ass_path = f.name
 
     try:

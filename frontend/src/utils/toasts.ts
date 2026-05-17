@@ -1,20 +1,13 @@
-import { checkCapabilities, type Capabilities } from '../api'
+import type { Capabilities } from '../api'
 import { useCaptionStore } from '../stores/captionStore'
-
-export async function fetchCapabilities(): Promise<Capabilities> {
-  return checkCapabilities()
-}
 
 interface PendingStages {
   diarize: boolean
   denoise: boolean
 }
 
-/**
- * Surface a "downloading model" toast for any stage whose model isn't cached
- * yet. Without this the app appears to freeze while pyannote / Demucs pull
- * weights from the network on first run.
- */
+// Without these toasts the app appears to freeze on the first run with
+// diarization or denoise enabled while pyannote / Demucs pull weights.
 export function pushModelDownloadToasts(caps: Capabilities, stages: PendingStages): void {
   const push = useCaptionStore.getState().pushToast
 
