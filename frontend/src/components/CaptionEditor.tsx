@@ -341,6 +341,34 @@ export function CaptionEditor() {
   const [autoEditId, setAutoEditId] = useState<number | null>(null)
   const [bulkSpeakerOpen, setBulkSpeakerOpen] = useState(false)
   const bulkSpeakerRef = useRef<HTMLDivElement>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Cmd/Ctrl+F focuses the search input. Escape (while focused) clears + blurs.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey
+      if (mod && e.key === 'f') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+        return
+      }
+      if (e.key === 'Escape' && e.target === searchInputRef.current) {
+        e.preventDefault()
+        setSearchQuery('')
+        searchInputRef.current?.blur()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const trimmedQuery = searchQuery.trim().toLowerCase()
+  const filteredCaptions = useMemo(() => {
+    if (!trimmedQuery) return captions
+    return captions.filter((c) => c.text.toLowerCase().includes(trimmedQuery))
+  }, [captions, trimmedQuery])
 
   useEffect(() => {
     if (!bulkSpeakerOpen) return
@@ -518,7 +546,11 @@ export function CaptionEditor() {
       )}
       <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-border">
         <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent-light">Captions</span>
-        <span className="text-xs text-text-dim">{captions.length} segments</span>
+        <span className="text-xs text-text-dim">
+          {trimmedQuery
+            ? `${filteredCaptions.length} of ${captions.length} match`
+            : `${captions.length} segments`}
+        </span>
         <div className="flex-1" />
         <button
           className={headerTextBtn}
@@ -550,6 +582,38 @@ export function CaptionEditor() {
           title="Redo (Ctrl/⌘+Shift+Z)"
           aria-label="Redo"
         ><span aria-hidden="true">↷</span></button>
+      </div>
+
+      <div className="flex items-center gap-2 px-[18px] py-2 border-b border-border">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-dim shrink-0" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchQuery}
+          placeholder="Search captions… (Ctrl/⌘+F)"
+          onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search captions"
+          className="bg-transparent border-0 text-[13px] text-text-primary outline-none flex-1 placeholder:text-text-dim"
+        />
+        {trimmedQuery && (
+          <>
+            <span className="text-[11px] font-mono text-text-dim">
+              {filteredCaptions.length} / {captions.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              title="Clear (Esc)"
+              className="bg-transparent border-0 text-text-muted text-base leading-none cursor-pointer px-1 hover:text-text-primary"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </>
+        )}
       </div>
 
       {hasSelection && (
@@ -619,7 +683,12 @@ export function CaptionEditor() {
             No captions yet. Press <strong>+ Add</strong> to create one at the current playhead.
           </p>
         )}
-        {captions.map((cap) => {
+        {captions.length > 0 && filteredCaptions.length === 0 && (
+          <p className="px-[18px] py-8 text-[13px] text-text-dim text-center">
+            No captions match "<strong>{searchQuery}</strong>".
+          </p>
+        )}
+        {filteredCaptions.map((cap) => {
           const sp = cap.speaker
           const speakerColor = sp ? speakerColors[sp] ?? null : null
           const speakerOutlineColor = sp ? speakerOutlineColors[sp] ?? null : null
