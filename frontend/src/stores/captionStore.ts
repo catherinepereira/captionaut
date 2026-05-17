@@ -134,6 +134,7 @@ interface CaptionStore {
   isReTranscribing: boolean
   captionStyle: CaptionStyle
   thumbnail: string | null
+  projectName: string | null
   toasts: Toast[]
 
   setVideoFile: (file: File) => void
@@ -168,6 +169,7 @@ interface CaptionStore {
     alignment: AlignmentResult[]
     captionStyle: CaptionStyle
     thumbnail?: string | null
+    name?: string | null
   }) => void
   setCurrentTime: (t: number) => void
   setVideoDuration: (d: number) => void
@@ -180,6 +182,7 @@ interface CaptionStore {
   setCaptionStyle: (patch: Partial<CaptionStyle>) => void
   setReTranscribing: (v: boolean) => void
   setThumbnail: (dataUrl: string | null) => void
+  setProjectName: (name: string | null) => void
   replaceCaptions: (next: Caption[]) => void  // history-aware mutator for bulk ops
   undo: () => void
   redo: () => void
@@ -248,6 +251,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   isReTranscribing: false,
   captionStyle: DEFAULT_CAPTION_STYLE,
   thumbnail: null,
+  projectName: null,
   toasts: [],
 
   setVideoFile: (file) => set((store) => {
@@ -457,6 +461,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   setCaptionStyle: (patch) => set((store) => ({ captionStyle: { ...store.captionStyle, ...patch } })),
   setReTranscribing: (v) => set({ isReTranscribing: v }),
   setThumbnail: (dataUrl) => set({ thumbnail: dataUrl }),
+  setProjectName: (name) => set({ projectName: name && name.trim() ? name.trim() : null }),
   loadSavedSession: (data) => set({
     captions: data.captions,
     speakers: data.speakers,
@@ -471,6 +476,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     alignment: data.alignment,
     captionStyle: data.captionStyle,
     thumbnail: data.thumbnail ?? null,
+    projectName: data.name ?? null,
     history: [],
     future: [],
   }),
@@ -492,6 +498,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
       isReTranscribing: false,
       thumbnail: null,
+      projectName: null,
     }
   }),
 }))

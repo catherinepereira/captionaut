@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   uploadVideo, transcribeJob, alignScript, streamProgress, errMsg, checkCapabilities,
   type StreamHandle,
@@ -6,6 +6,14 @@ import {
 import { useCaptionStore } from '../stores/captionStore'
 import { findByFingerprint, fingerprint, clearProject, type SavedProject } from '../utils/projects'
 import { pushModelDownloadToasts } from '../utils/toasts'
+
+export type RestoreChoice = 'restore' | 'new' | 'cancel'
+
+export interface RestorePrompt {
+  prior: SavedProject
+  fingerprintMatches: boolean  // false = file differs from saved fingerprint
+  resolve: (choice: RestoreChoice) => void
+}
 
 // Upload → configure → transcribe → align pipeline as a single hook.
 export function useVideoPipeline() {
@@ -20,6 +28,25 @@ export function useVideoPipeline() {
   const setError = useCaptionStore((s) => s.setError)
   const setTranscribeProgress = useCaptionStore((s) => s.setTranscribeProgress)
   const reset = useCaptionStore((s) => s.reset)
+
+  const [restorePrompt, setRestorePrompt] = useState<RestorePrompt | null>(null)
+  const [reTranscribePromptOpen, setReTranscribePromptOpen] = useState(false)
+  const reTranscribeResolverRef = useRef<((ok: boolean) => void) | null>(null)
+
+  const askRestore = (
+    prior: SavedProject,
+    fingerprintMatches: boolean,
+  ): Promise<RestoreChoice> =>
+    new Promise((resolve) => {
+      setRestorePrompt({
+        prior,
+        fingerprintMatches,
+        resolve: (choice) => {
+          setRestorePrompt(null)
+          resolve(choice)
+        },
+      })
+    })
 
   // Close the SSE stream on unmount and when leaving the busy states.
   useEffect(() => () => { progressStreamRef.current?.close() }, [])
@@ -46,6 +73,7 @@ export function useVideoPipeline() {
       speakerAlign: prior.speakerAlign ?? {},
       alignment: prior.alignment,
       captionStyle: prior.captionStyle,
+      name: prior.name ?? null,
     })
     setState('editing')
 
@@ -59,23 +87,7 @@ export function useVideoPipeline() {
       .catch((err) => setError(`Background upload failed: ${errMsg(err)}`))
   }
 
-  const handleVideoFile = async (file: File) => {
-    reset()
-
-    // If we've seen this exact file before, offer to restore the prior session.
-    const prior = findByFingerprint(fingerprint(file))
-    if (prior) {
-      const confirmed = window.confirm(
-        `Restore your previous work on "${prior.videoFileName}"?\n\n` +
-        `Saved ${new Date(prior.savedAt).toLocaleString()}\n` +
-        `${prior.captions.length} captions${prior.speakers.length ? `, ${prior.speakers.length} speakers` : ''}.`,
-      )
-      if (confirmed) {
-        restoreFromSaved(file, prior)
-        return
-      }
-    }
-
+  const startFreshUpload = async (file: File) => {
     setVideoFile(file)
     setState('uploading')
     try {
@@ -88,18 +100,35 @@ export function useVideoPipeline() {
     }
   }
 
+  const handleVideoFile = async (file: File) => {
+    reset()
+
+    const prior = findByFingerprint(fingerprint(file))
+    if (prior) {
+      const choice = await askRestore(prior, true)
+      if (choice === 'cancel') return
+      if (choice === 'restore') {
+        restoreFromSaved(file, prior)
+        return
+      }
+      // choice === 'new' falls through to fresh upload
+    }
+
+    await startFreshUpload(file)
+  }
+
   // Recent-projects entry point: user picks a card, then picks a file.
-  // Confirm if the file's fingerprint differs from the saved one.
-  const continueProjectWithFile = (prior: SavedProject, file: File) => {
+  const continueProjectWithFile = async (prior: SavedProject, file: File) => {
     reset()
     const fp = fingerprint(file)
     if (fp !== prior.videoFingerprint) {
-      const confirmed = window.confirm(
-        `This file doesn't match "${prior.videoFileName}" (saved size differs).\n\n` +
-        `Use it anyway? Captions will be restored, but they may not line up if the video is different.`,
-      )
-      if (!confirmed) {
+      const choice = await askRestore(prior, false)
+      if (choice === 'cancel') {
         setState('idle')
+        return
+      }
+      if (choice === 'new') {
+        await startFreshUpload(file)
         return
       }
     }
@@ -157,9 +186,21 @@ export function useVideoPipeline() {
     }
   }
 
+  const askReTranscribe = (): Promise<boolean> =>
+    new Promise((resolve) => {
+      reTranscribeResolverRef.current = resolve
+      setReTranscribePromptOpen(true)
+    })
+
+  const resolveReTranscribe = (ok: boolean) => {
+    reTranscribeResolverRef.current?.(ok)
+    reTranscribeResolverRef.current = null
+    setReTranscribePromptOpen(false)
+  }
+
   // Re-transcribe an in-progress project. Confirms before clobbering edits,
   // then routes through the existing ConfigScreen → transcribe pipeline.
-  const handleReTranscribe = () => {
+  const handleReTranscribe = async () => {
     const store = useCaptionStore.getState()
     if (!store.jobId) return
 
@@ -168,10 +209,8 @@ export function useVideoPipeline() {
       store.speakers.length > 0 ||
       store.history.length > 0
     if (hasEdits) {
-      const confirmed = window.confirm(
-        'Re-transcribing will replace your current captions, speakers, and edits. Continue?',
-      )
-      if (!confirmed) return
+      const ok = await askReTranscribe()
+      if (!ok) return
     }
 
     store.setReTranscribing(true)
@@ -180,5 +219,10 @@ export function useVideoPipeline() {
     setState('configuring')
   }
 
-  return { handleVideoFile, handleStartTranscription, continueProjectWithFile, handleReTranscribe }
+  return {
+    handleVideoFile, handleStartTranscription, continueProjectWithFile, handleReTranscribe,
+    restorePrompt,
+    reTranscribePromptOpen,
+    resolveReTranscribe,
+  }
 }

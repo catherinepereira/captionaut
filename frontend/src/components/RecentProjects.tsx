@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { listProjectMeta, clearProject, type SavedProject } from '../utils/projects'
+import { ConfirmModal } from './ConfirmModal'
 
 interface Props {
   onContinue: (project: SavedProject, file: File) => void
@@ -8,7 +9,13 @@ interface Props {
 export function RecentProjects({ onContinue }: Props) {
   const [projects, setProjects] = useState<SavedProject[]>([])
   const [pending, setPending] = useState<SavedProject | null>(null)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const deleteTarget = useMemo(
+    () => projects.find((p) => p.jobId === deleteTargetId) ?? null,
+    [projects, deleteTargetId],
+  )
 
   useEffect(() => {
     const refresh = () => setProjects(
@@ -32,12 +39,16 @@ export function RecentProjects({ onContinue }: Props) {
     if (file && project) onContinue(project, file)
   }
 
-  const handleDelete = (e: React.MouseEvent, jobId: string) => {
+  const requestDelete = (e: React.MouseEvent, jobId: string) => {
     e.stopPropagation()
-    const confirmed = window.confirm('Delete this saved project? This cannot be undone.')
-    if (!confirmed) return
-    clearProject(jobId)
-    setProjects((prev) => prev.filter((p) => p.jobId !== jobId))
+    setDeleteTargetId(jobId)
+  }
+
+  const confirmDelete = () => {
+    if (!deleteTargetId) return
+    clearProject(deleteTargetId)
+    setProjects((prev) => prev.filter((p) => p.jobId !== deleteTargetId))
+    setDeleteTargetId(null)
   }
 
   if (projects.length === 0) return null
@@ -63,7 +74,7 @@ export function RecentProjects({ onContinue }: Props) {
             <button
               type="button"
               onClick={() => handleCardClick(p)}
-              aria-label={`Continue ${p.videoFileName}`}
+              aria-label={`Continue ${p.name || p.videoFileName}`}
               className="flex-1 flex flex-col bg-transparent border-0 text-text-primary text-left cursor-pointer p-0 font-inherit focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
             >
               {p.thumbnail ? (
@@ -86,8 +97,11 @@ export function RecentProjects({ onContinue }: Props) {
                 </div>
               )}
               <div className="px-3 py-2.5 flex flex-col gap-1 min-w-0">
-                <span className="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" title={p.videoFileName}>
-                  {p.videoFileName}
+                <span
+                  className="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap"
+                  title={p.name ? `${p.name} (${p.videoFileName})` : p.videoFileName}
+                >
+                  {p.name || p.videoFileName}
                 </span>
                 <span className="text-[11px] text-text-muted flex justify-between gap-2">
                   <span>
@@ -100,7 +114,7 @@ export function RecentProjects({ onContinue }: Props) {
             </button>
             <button
               type="button"
-              onClick={(e) => handleDelete(e, p.jobId)}
+              onClick={(e) => requestDelete(e, p.jobId)}
               aria-label={`Delete ${p.videoFileName}`}
               title="Delete project"
               className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/55 border border-border rounded text-text-muted text-sm leading-none cursor-pointer opacity-0 transition-[opacity,color,background] duration-150 group-hover:opacity-100 hover:text-red hover:bg-black/70 hover:outline-none focus-visible:opacity-100 focus-visible:text-red focus-visible:bg-black/70 focus-visible:outline-none"
@@ -117,6 +131,21 @@ export function RecentProjects({ onContinue }: Props) {
         className="hidden"
         onChange={handleFilePicked}
         aria-hidden="true"
+      />
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete project"
+        message={
+          <>
+            Delete <strong>{deleteTarget?.name || deleteTarget?.videoFileName}</strong>?
+            <br />
+            This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={confirmDelete}
       />
     </section>
   )

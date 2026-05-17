@@ -20,6 +20,7 @@ export function useProjectPersistence(): void {
   const alignment = useCaptionStore((s) => s.alignment)
   const captionStyle = useCaptionStore((s) => s.captionStyle)
   const thumbnail = useCaptionStore((s) => s.thumbnail)
+  const projectName = useCaptionStore((s) => s.projectName)
 
   useEffect(() => {
     if (!jobId || captions.length === 0 || !videoFile) return
@@ -41,12 +42,13 @@ export function useProjectPersistence(): void {
       alignment,
       captionStyle,
       thumbnail: thumbnail ?? undefined,
+      name: projectName ?? undefined,
     })
   }, [
     jobId, videoFile, captions, speakers,
     speakerColors, speakerOutlineColors, speakerOutlineThickness,
     speakerFontFamilies, speakerFontSizes,
     speakerPosX, speakerPosY, speakerAlign,
-    alignment, captionStyle, thumbnail,
+    alignment, captionStyle, thumbnail, projectName,
   ])
 }

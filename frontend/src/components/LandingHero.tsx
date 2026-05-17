@@ -30,18 +30,34 @@ export function LandingHero({ onFile, onContinueProject }: Props) {
       <dl className="grid grid-cols-3 gap-6 mt-16 pt-8 border-t border-border">
         <div>
           <dt className="text-[10px] font-bold tracking-[0.1em] text-text-dim mb-1.5">TRANSCRIPTION</dt>
-          <dd className="text-sm text-text-muted">Whisper AI</dd>
+          <dd className="text-sm text-text-muted">
+            <a
+              href="https://github.com/openai/whisper"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent-light underline-offset-2 hover:underline"
+            >
+              Whisper AI
+            </a>
+          </dd>
         </div>
         <div>
           <dt className="text-[10px] font-bold tracking-[0.1em] text-text-dim mb-1.5">SPEAKERS</dt>
           <dd className="text-sm text-text-muted">
-            <span className="text-accent-light">auto-detected</span>
+            <a
+              href="https://huggingface.co/pyannote/speaker-diarization-3.1"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent-light underline-offset-2 hover:underline"
+            >
+              pyannote community model
+            </a>
           </dd>
         </div>
         <div>
           <dt className="text-[10px] font-bold tracking-[0.1em] text-text-dim mb-1.5">OUTPUT</dt>
           <dd className="text-sm text-text-muted">
-            .srt · .vtt · <span className="text-accent-light">mp4</span>
+            .srt · .vtt · <span className="text-accent-light">mp4 · webm · mov</span>
           </dd>
         </div>
       </dl>

@@ -15,6 +15,7 @@ export interface SavedProject {
   videoFileName: string
   videoFingerprint: string  // `${name}::${size}`, used to match re-uploads
   savedAt: number
+  name?: string
   captions: Caption[]
   speakers: string[]
   speakerColors: Record<string, string>

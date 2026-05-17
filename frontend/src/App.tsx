@@ -15,6 +15,8 @@ import { ConfigScreen } from './components/ConfigScreen'
 import { SpeakerPanel } from './components/SpeakerPanel'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ToastStack } from './components/ToastStack'
+import { RestoreProjectModal } from './components/RestoreProjectModal'
+import { ConfirmModal } from './components/ConfirmModal'
 
 export function App() {
   const state = useCaptionStore((s) => s.state)
@@ -26,6 +28,8 @@ export function App() {
 
   const {
     handleVideoFile, handleStartTranscription, continueProjectWithFile, handleReTranscribe,
+    restorePrompt,
+    reTranscribePromptOpen, resolveReTranscribe,
   } = useVideoPipeline()
 
   useGlobalKeybinds()
@@ -79,6 +83,16 @@ export function App() {
         )}
       </main>
 
+      <RestoreProjectModal prompt={restorePrompt} />
+      <ConfirmModal
+        open={reTranscribePromptOpen}
+        title="Re-transcribe?"
+        message="Re-transcribing will replace your current captions, speakers, and edits."
+        confirmLabel="Continue"
+        cancelLabel="Cancel"
+        onClose={() => resolveReTranscribe(false)}
+        onConfirm={() => resolveReTranscribe(true)}
+      />
       <ToastStack />
     </div>
   )

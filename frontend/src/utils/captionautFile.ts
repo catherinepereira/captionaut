@@ -10,6 +10,7 @@ export interface CaptionautFile {
   version: number
   exportedAt: string
   sourceFileName: string | null
+  projectName: string | null
   captions: Caption[]
   speakers: string[]
   speakerColors: Record<string, string>
@@ -25,6 +26,7 @@ export interface CaptionautFile {
 }
 
 export interface CaptionautImport {
+  projectName: string | null
   captions: Caption[]
   speakers: string[]
   speakerColors: Record<string, string>
@@ -45,6 +47,7 @@ export function buildCaptionautFile(input: Omit<CaptionautImport, never> & { sou
     version: CAPTIONAUT_VERSION,
     exportedAt: new Date().toISOString(),
     sourceFileName: input.sourceFileName,
+    projectName: input.projectName,
     captions: input.captions,
     speakers: input.speakers,
     speakerColors: input.speakerColors,
@@ -78,6 +81,7 @@ export function parseCaptionautFile(raw: string): CaptionautImport {
   if (!Array.isArray(captions)) throw new Error('Missing "captions" array.')
 
   return {
+    projectName: typeof parsed.projectName === 'string' ? parsed.projectName : null,
     captions: captions as Caption[],
     speakers: arr<string>(parsed.speakers),
     speakerColors: rec<string>(parsed.speakerColors),

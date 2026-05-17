@@ -24,7 +24,7 @@ export function Toolbar({ onReTranscribe }: Props) {
     speakerColors, speakerOutlineColors, speakerOutlineThickness,
     speakerFontFamilies, speakerFontSizes,
     speakerPosX, speakerPosY, speakerAlign,
-    videoFile,
+    videoFile, projectName,
     setState, setAlignment, setError, loadSavedSession, pushToast,
   } = useCaptionStore()
   const scriptRef = useRef<HTMLInputElement>(null)
@@ -71,6 +71,7 @@ export function Toolbar({ onReTranscribe }: Props) {
     if (captions.length === 0) return
     const file = buildCaptionautFile({
       sourceFileName: videoFile?.name ?? null,
+      projectName: projectName ?? null,
       captions,
       speakers,
       speakerColors,
@@ -85,7 +86,7 @@ export function Toolbar({ onReTranscribe }: Props) {
       alignment,
     })
     const json = JSON.stringify(file, null, 2)
-    const base = (videoFile?.name ?? 'project').replace(/\.[^.]+$/, '')
+    const base = (projectName || videoFile?.name || 'project').replace(/\.[^.]+$/, '')
     downloadBlob(new Blob([json], { type: 'application/json' }), `${base}.captionaut`)
   }
 
@@ -93,7 +94,7 @@ export function Toolbar({ onReTranscribe }: Props) {
     try {
       const text = await file.text()
       const data = parseCaptionautFile(text)
-      loadSavedSession(data)
+      loadSavedSession({ ...data, name: data.projectName })
       pushToast('info', `Imported ${data.captions.length} caption${data.captions.length === 1 ? '' : 's'} from ${file.name}.`)
     } catch (e) {
       setError(`Import failed: ${errMsg(e)}`)
