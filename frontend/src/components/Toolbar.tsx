@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
-import { alignScript, burnCaptions, exportCaptions, errMsg, downloadBlob } from '../api'
+import { alignScript, renderCaptions, exportCaptions, errMsg, downloadBlob } from '../api'
 import { StylePanel } from './StylePanel'
 import { buildCaptionautFile, parseCaptionautFile } from '../utils/captionautFile'
 import styles from './Toolbar.module.css'
 
 export function Toolbar() {
   const {
-    state, jobId, captions, speakers, burnStyle, alignment,
+    state, jobId, captions, speakers, captionStyle, alignment,
     speakerColors, speakerOutlineColors, speakerOutlineThickness,
     speakerFontFamilies, speakerFontSizes,
     videoFile,
@@ -17,7 +17,7 @@ export function Toolbar() {
   const projectRef = useRef<HTMLInputElement>(null)
   const [styleOpen, setStyleOpen] = useState(false)
 
-  const canEdit = state === 'editing' || state === 'burning'
+  const canEdit = state === 'editing' || state === 'rendering'
 
   const handleScriptUpload = async (file: File) => {
     if (!jobId) return
@@ -28,11 +28,11 @@ export function Toolbar() {
     }
   }
 
-  const handleBurn = async () => {
+  const handleRender = async () => {
     if (!jobId || captions.length === 0) return
-    setState('burning')
+    setState('rendering')
     try {
-      const blob = await burnCaptions(jobId, captions, burnStyle, {
+      const blob = await renderCaptions(jobId, captions, captionStyle, {
         colors: speakerColors,
         outlineColors: speakerOutlineColors,
         outlineThickness: speakerOutlineThickness,
@@ -41,7 +41,7 @@ export function Toolbar() {
       })
       downloadBlob(blob, 'captioned.mp4')
     } catch (e) {
-      setError(`Burn-in failed: ${errMsg(e)}`)
+      setError(`Render failed: ${errMsg(e)}`)
     } finally {
       setState('editing')
     }
@@ -58,7 +58,7 @@ export function Toolbar() {
       speakerOutlineThickness,
       speakerFontFamilies,
       speakerFontSizes,
-      burnStyle,
+      captionStyle,
       alignment,
     })
     const json = JSON.stringify(file, null, 2)
@@ -134,10 +134,10 @@ export function Toolbar() {
           </button>
           <button
             className={`${styles.btn} ${styles.primary}`}
-            onClick={handleBurn}
-            disabled={state === 'burning'}
+            onClick={handleRender}
+            disabled={state === 'rendering'}
           >
-            {state === 'burning' ? 'Burning…' : 'Burn into video'}
+            {state === 'rendering' ? 'Rendering…' : 'Render video'}
           </button>
         </div>
       </div>

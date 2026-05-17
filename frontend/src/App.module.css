@@ -21,11 +21,32 @@
   flex: 1;
 }
 
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--purple);
+.logoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: background 0.15s;
+}
+
+.logoBtn:hover:not(:disabled) {
+  background: var(--bg-elevated);
+}
+
+.logoBtn:disabled {
+  cursor: default;
+}
+
+.logoEmoji {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .logoText {
@@ -57,13 +78,13 @@
   font-size: 13px;
   font-weight: 500;
   padding: 7px 14px;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: border-color 0.15s, color 0.15s;
 }
 
 .newBtn:hover {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .headerActions {
@@ -79,7 +100,7 @@
   font-size: 16px;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -87,8 +108,8 @@
 }
 
 .iconBtn:hover {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .hero {
@@ -101,7 +122,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--purple-light);
+  color: var(--accent-light);
   margin-bottom: 20px;
 }
 
@@ -115,7 +136,7 @@
 }
 
 .accent {
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 .subheadline {
@@ -161,7 +182,7 @@
   width: 36px;
   height: 36px;
   border: 3px solid var(--border);
-  border-top-color: var(--purple);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 8px;
@@ -213,7 +234,7 @@
 
 .progressFill {
   height: 100%;
-  background: var(--purple);
+  background: var(--accent);
   border-radius: 3px;
   transition: width 0.3s ease;
 }

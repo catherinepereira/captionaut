@@ -31,24 +31,24 @@
 }
 
 .desc strong {
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 .btn {
-  background: var(--purple);
+  background: var(--accent);
   border: none;
   color: #fff;
   font-size: 15px;
   font-weight: 600;
   padding: 12px 28px;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s;
   width: 100%;
 }
 
 .btn:hover {
-  background: var(--purple-light);
+  background: var(--accent-light);
 }
 
 .progressWrap {
@@ -68,7 +68,7 @@
 
 .progressFill {
   height: 100%;
-  background: var(--purple);
+  background: var(--accent);
   border-radius: 4px;
   transition: width 0.3s ease;
 }
@@ -84,7 +84,7 @@
   margin-bottom: 16px;
   padding: 10px;
   background: rgba(224, 92, 122, 0.1);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .privacy {
@@ -97,7 +97,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid var(--border);
-  border-top-color: var(--purple);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

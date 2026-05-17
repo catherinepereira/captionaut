@@ -28,7 +28,7 @@ export function useVideoPipeline() {
   }, [state])
 
   // Restore captions immediately, then re-upload in the background to mint
-  // a fresh jobId for burn / re-align.
+  // a fresh jobId for render / re-align.
   const restoreFromSaved = (file: File, prior: SavedProject) => {
     setVideoFile(file)
 
@@ -42,7 +42,7 @@ export function useVideoPipeline() {
       speakerFontFamilies: prior.speakerFontFamilies ?? {},
       speakerFontSizes: prior.speakerFontSizes ?? {},
       alignment: prior.alignment,
-      burnStyle: prior.burnStyle,
+      captionStyle: prior.captionStyle,
     })
     setState('editing')
 

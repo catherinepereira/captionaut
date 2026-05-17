@@ -1,18 +1,18 @@
-import type { ModelSize, BurnStyle } from '../stores/captionStore'
-import { DEFAULT_BURN_STYLE } from '../stores/captionStore'
+import type { ModelSize, CaptionStyle } from '../stores/captionStore'
+import { DEFAULT_CAPTION_STYLE } from '../stores/captionStore'
 
 const KEY = 'captionaut.settings'
 
 export interface UserSettings {
   defaultModelSize: ModelSize
   hfToken: string
-  defaultBurnStyle: BurnStyle
+  defaultCaptionStyle: CaptionStyle
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
   defaultModelSize: 'base',
   hfToken: '',
-  defaultBurnStyle: DEFAULT_BURN_STYLE,
+  defaultCaptionStyle: DEFAULT_CAPTION_STYLE,
 }
 
 export function loadSettings(): UserSettings {
@@ -23,7 +23,7 @@ export function loadSettings(): UserSettings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
-      defaultBurnStyle: { ...DEFAULT_SETTINGS.defaultBurnStyle, ...(parsed.defaultBurnStyle ?? {}) },
+      defaultCaptionStyle: { ...DEFAULT_SETTINGS.defaultCaptionStyle, ...(parsed.defaultCaptionStyle ?? {}) },
     }
   } catch {
     return DEFAULT_SETTINGS

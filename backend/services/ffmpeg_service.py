@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import tempfile
 
-from ..models.schemas import BurnStyle, Caption
+from ..models.schemas import CaptionStyle, Caption
 
 log = logging.getLogger(__name__)
 
@@ -174,14 +174,14 @@ def _style_line(
 
 def _build_ass(
     captions: list[Caption],
-    style: BurnStyle | None,
+    style: CaptionStyle | None,
     speaker_colors: dict[str, str] | None = None,
     speaker_outline_colors: dict[str, str] | None = None,
     speaker_outline_thickness: dict[str, float] | None = None,
     speaker_font_families: dict[str, str] | None = None,
     speaker_font_sizes: dict[str, int] | None = None,
 ) -> str:
-    st = style or BurnStyle()
+    st = style or CaptionStyle()
     default_primary = _hex_to_ass_color(st.color)
     default_outline = _hex_to_ass_color(st.outlineColor)
     font = _safe_font(st.fontFamily)
@@ -263,11 +263,11 @@ def _build_ass(
     return "\n".join(lines)
 
 
-def burn_captions(
+def render_captions(
     video_path: str,
     captions: list[Caption],
     output_path: str,
-    style: BurnStyle | None = None,
+    style: CaptionStyle | None = None,
     speaker_colors: dict[str, str] | None = None,
     speaker_outline_colors: dict[str, str] | None = None,
     speaker_outline_thickness: dict[str, float] | None = None,

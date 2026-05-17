@@ -15,7 +15,7 @@ const ALIGN_OPTIONS: { value: 'left' | 'center' | 'right'; label: string }[] = [
 ]
 
 export function StylePanel({ open, onClose }: Props) {
-  const { burnStyle, setBurnStyle } = useCaptionStore()
+  const { captionStyle, setCaptionStyle } = useCaptionStore()
   const titleId = useId()
 
   useEffect(() => {
@@ -49,10 +49,10 @@ export function StylePanel({ open, onClose }: Props) {
           <div
             className={styles.previewText}
             style={{
-              fontFamily: burnStyle.fontFamily,
-              fontSize: Math.min(burnStyle.fontSize * 0.5, 32),
-              color: burnStyle.color,
-              textShadow: `0 0 2px ${burnStyle.outlineColor}, 0 0 4px ${burnStyle.outlineColor}`,
+              fontFamily: captionStyle.fontFamily,
+              fontSize: Math.min(captionStyle.fontSize * 0.5, 32),
+              color: captionStyle.color,
+              textShadow: `0 0 2px ${captionStyle.outlineColor}, 0 0 4px ${captionStyle.outlineColor}`,
             }}
           >
             Sample caption text
@@ -63,8 +63,8 @@ export function StylePanel({ open, onClose }: Props) {
           <label className={styles.label}>Font</label>
           <select
             className={styles.select}
-            value={burnStyle.fontFamily}
-            onChange={(e) => setBurnStyle({ fontFamily: e.target.value })}
+            value={captionStyle.fontFamily}
+            onChange={(e) => setCaptionStyle({ fontFamily: e.target.value })}
           >
             {FONT_OPTIONS.map((f) => (
               <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
@@ -80,10 +80,10 @@ export function StylePanel({ open, onClose }: Props) {
             min={24}
             max={96}
             step={2}
-            value={burnStyle.fontSize}
-            onChange={(e) => setBurnStyle({ fontSize: Number(e.target.value) })}
+            value={captionStyle.fontSize}
+            onChange={(e) => setCaptionStyle({ fontSize: Number(e.target.value) })}
           />
-          <span className={styles.value}>{burnStyle.fontSize}px</span>
+          <span className={styles.value}>{captionStyle.fontSize}px</span>
         </div>
 
         <div className={styles.row}>
@@ -91,10 +91,10 @@ export function StylePanel({ open, onClose }: Props) {
           <input
             type="color"
             className={styles.color}
-            value={burnStyle.color}
-            onChange={(e) => setBurnStyle({ color: e.target.value })}
+            value={captionStyle.color}
+            onChange={(e) => setCaptionStyle({ color: e.target.value })}
           />
-          <span className={styles.value}>{burnStyle.color.toUpperCase()}</span>
+          <span className={styles.value}>{captionStyle.color.toUpperCase()}</span>
         </div>
 
         <div className={styles.row}>
@@ -102,10 +102,10 @@ export function StylePanel({ open, onClose }: Props) {
           <input
             type="color"
             className={styles.color}
-            value={burnStyle.outlineColor}
-            onChange={(e) => setBurnStyle({ outlineColor: e.target.value })}
+            value={captionStyle.outlineColor}
+            onChange={(e) => setCaptionStyle({ outlineColor: e.target.value })}
           />
-          <span className={styles.value}>{burnStyle.outlineColor.toUpperCase()}</span>
+          <span className={styles.value}>{captionStyle.outlineColor.toUpperCase()}</span>
         </div>
 
         <div className={styles.row}>
@@ -116,10 +116,10 @@ export function StylePanel({ open, onClose }: Props) {
             min={0}
             max={10}
             step={0.5}
-            value={burnStyle.outlineThickness}
-            onChange={(e) => setBurnStyle({ outlineThickness: parseFloat(e.target.value) })}
+            value={captionStyle.outlineThickness}
+            onChange={(e) => setCaptionStyle({ outlineThickness: parseFloat(e.target.value) })}
           />
-          <span className={styles.value}>{burnStyle.outlineThickness.toFixed(1)}</span>
+          <span className={styles.value}>{captionStyle.outlineThickness.toFixed(1)}</span>
         </div>
 
         <div className={styles.row}>
@@ -130,10 +130,10 @@ export function StylePanel({ open, onClose }: Props) {
             min={0}
             max={100}
             step={1}
-            value={burnStyle.posX}
-            onChange={(e) => setBurnStyle({ posX: Number(e.target.value) })}
+            value={captionStyle.posX}
+            onChange={(e) => setCaptionStyle({ posX: Number(e.target.value) })}
           />
-          <span className={styles.value}>{Math.round(burnStyle.posX)}%</span>
+          <span className={styles.value}>{Math.round(captionStyle.posX)}%</span>
         </div>
 
         <div className={styles.row}>
@@ -144,10 +144,10 @@ export function StylePanel({ open, onClose }: Props) {
             min={0}
             max={100}
             step={1}
-            value={burnStyle.posY}
-            onChange={(e) => setBurnStyle({ posY: Number(e.target.value) })}
+            value={captionStyle.posY}
+            onChange={(e) => setCaptionStyle({ posY: Number(e.target.value) })}
           />
-          <span className={styles.value}>{Math.round(burnStyle.posY)}%</span>
+          <span className={styles.value}>{Math.round(captionStyle.posY)}%</span>
         </div>
 
         <div className={styles.row}>
@@ -162,9 +162,9 @@ export function StylePanel({ open, onClose }: Props) {
                 key={value}
                 type="button"
                 role="radio"
-                aria-checked={burnStyle.align === value}
-                className={`${styles.posBtn} ${burnStyle.align === value ? styles.posBtnActive : ''}`}
-                onClick={() => setBurnStyle({ align: value })}
+                aria-checked={captionStyle.align === value}
+                className={`${styles.posBtn} ${captionStyle.align === value ? styles.posBtnActive : ''}`}
+                onClick={() => setCaptionStyle({ align: value })}
               >
                 {label}
               </button>

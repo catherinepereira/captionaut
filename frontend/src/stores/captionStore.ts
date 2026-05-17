@@ -24,7 +24,7 @@ export interface AlignmentResult {
 
 export type HorizontalAlign = 'left' | 'center' | 'right'
 
-export interface BurnStyle {
+export interface CaptionStyle {
   fontFamily: string
   fontSize: number
   color: string
@@ -35,7 +35,7 @@ export interface BurnStyle {
   align: HorizontalAlign
 }
 
-export const DEFAULT_BURN_STYLE: BurnStyle = {
+export const DEFAULT_CAPTION_STYLE: CaptionStyle = {
   fontFamily: 'Arial',
   fontSize: 48,
   color: '#000000',
@@ -75,14 +75,14 @@ export const DEFAULT_TRANSCRIBE_CONFIG: TranscribeConfig = {
 }
 
 export const SPEAKER_PALETTE = [
-  '#7c5cfc',
-  '#4caf91',
-  '#e05c7a',
-  '#ffa726',
-  '#42a5f5',
-  '#ec407a',
-  '#ab47bc',
-  '#26c6da',
+  '#8aaad0',
+  '#6ec9a9',
+  '#d97385',
+  '#d3a06b',
+  '#7dc1e8',
+  '#c89bd0',
+  '#9ad17e',
+  '#e8c574',
 ]
 
 type AppState =
@@ -91,7 +91,7 @@ type AppState =
   | 'configuring'
   | 'transcribing'
   | 'editing'
-  | 'burning'
+  | 'rendering'
 
 const HISTORY_LIMIT = 100
 
@@ -125,7 +125,7 @@ interface CaptionStore {
   error: string | null
   transcribeProgress: number
   transcribeConfig: TranscribeConfig
-  burnStyle: BurnStyle
+  captionStyle: CaptionStyle
   toasts: Toast[]
 
   setVideoFile: (file: File) => void
@@ -151,7 +151,7 @@ interface CaptionStore {
     speakerFontFamilies: Record<string, string>
     speakerFontSizes: Record<string, number>
     alignment: AlignmentResult[]
-    burnStyle: BurnStyle
+    captionStyle: CaptionStyle
   }) => void
   setCurrentTime: (t: number) => void
   setVideoDuration: (d: number) => void
@@ -161,7 +161,7 @@ interface CaptionStore {
   setTranscribeProgress: (p: number) => void
   setTranscribeConfig: (patch: Partial<TranscribeConfig>) => void
   setDiarizationConfig: (patch: Partial<DiarizationConfig>) => void
-  setBurnStyle: (patch: Partial<BurnStyle>) => void
+  setCaptionStyle: (patch: Partial<CaptionStyle>) => void
   replaceCaptions: (next: Caption[]) => void  // history-aware mutator for bulk ops
   undo: () => void
   redo: () => void
@@ -221,7 +221,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   error: null,
   transcribeProgress: 0,
   transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
-  burnStyle: DEFAULT_BURN_STYLE,
+  captionStyle: DEFAULT_CAPTION_STYLE,
   toasts: [],
 
   setVideoFile: (file) => set((store) => {
@@ -370,7 +370,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
         diarization: { ...store.transcribeConfig.diarization, ...patch },
       },
     })),
-  setBurnStyle: (patch) => set((store) => ({ burnStyle: { ...store.burnStyle, ...patch } })),
+  setCaptionStyle: (patch) => set((store) => ({ captionStyle: { ...store.captionStyle, ...patch } })),
   loadSavedSession: (data) => set({
     captions: data.captions,
     speakers: data.speakers,
@@ -380,7 +380,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     speakerFontFamilies: data.speakerFontFamilies,
     speakerFontSizes: data.speakerFontSizes,
     alignment: data.alignment,
-    burnStyle: data.burnStyle,
+    captionStyle: data.captionStyle,
     history: [],
     future: [],
   }),

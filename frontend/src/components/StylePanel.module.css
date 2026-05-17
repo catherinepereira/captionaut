@@ -12,7 +12,7 @@
 .panel {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 6px;
   padding: 24px;
   width: 100%;
   max-width: 440px;
@@ -50,7 +50,7 @@
 .preview {
   background: linear-gradient(135deg, #1a1535 0%, #0e0c1a 100%);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 30px 16px;
   margin-bottom: 20px;
   text-align: center;
@@ -91,12 +91,12 @@
 }
 
 .select:focus {
-  border-color: var(--purple);
+  border-color: var(--accent);
 }
 
 .range {
   flex: 1;
-  accent-color: var(--purple);
+  accent-color: var(--accent);
 }
 
 .value {
@@ -135,18 +135,18 @@
 }
 
 .posBtn:hover {
-  border-color: var(--purple-light);
+  border-color: var(--accent-light);
   color: var(--text);
 }
 
 .posBtnActive {
-  background: var(--purple);
-  border-color: var(--purple);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
 .posBtnActive:hover {
-  background: var(--purple-light);
-  border-color: var(--purple-light);
+  background: var(--accent-light);
+  border-color: var(--accent-light);
   color: #fff;
 }

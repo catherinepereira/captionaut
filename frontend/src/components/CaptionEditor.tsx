@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useCaptionStore, type Caption, type BurnStyle } from '../stores/captionStore'
+import { useCaptionStore, type Caption, type CaptionStyle } from '../stores/captionStore'
 import { alignScript, errMsg } from '../api'
 import {
   findActiveCaptionId, shiftSelected, mergeSelected, splitAt, deleteSelected,
@@ -38,7 +38,7 @@ interface RowProps {
   speakerFontSize: number | null
   effectiveTextColor: string | null
   speakers: string[]
-  burnStyle: BurnStyle
+  captionStyle: CaptionStyle
   autoEditText: boolean
   onSeek: (t: number) => void
   onToggleSelect: (id: number, e: React.MouseEvent) => void
@@ -50,7 +50,7 @@ const CaptionRow = memo(function CaptionRow({
   caption, isActive, isMismatched, isSelected, speakerColor, speakerOutlineColor,
   speakerOutlineThickness, speakerFontFamily, speakerFontSize,
   effectiveTextColor,
-  speakers, burnStyle, autoEditText,
+  speakers, captionStyle, autoEditText,
   onSeek, onToggleSelect, onAutoEditConsumed, registerRef,
 }: RowProps) {
   const updateCaption = useCaptionStore((s) => s.updateCaption)
@@ -167,11 +167,11 @@ const CaptionRow = memo(function CaptionRow({
               fontSize: caption.font_size ?? null,
             }}
             defaults={{
-              color: speakerColor ?? burnStyle.color,
-              outlineColor: speakerOutlineColor ?? burnStyle.outlineColor,
-              outlineThickness: speakerOutlineThickness ?? burnStyle.outlineThickness,
-              fontFamily: speakerFontFamily ?? burnStyle.fontFamily,
-              fontSize: speakerFontSize ?? burnStyle.fontSize,
+              color: speakerColor ?? captionStyle.color,
+              outlineColor: speakerOutlineColor ?? captionStyle.outlineColor,
+              outlineThickness: speakerOutlineThickness ?? captionStyle.outlineThickness,
+              fontFamily: speakerFontFamily ?? captionStyle.fontFamily,
+              fontSize: speakerFontSize ?? captionStyle.fontSize,
             }}
             onChange={(patch: Partial<StyleValues>) => {
               const next: Parameters<typeof updateCaption>[1] = {}
@@ -292,7 +292,7 @@ export function CaptionEditor() {
   const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
   const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
   const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
-  const burnStyle = useCaptionStore((s) => s.burnStyle)
+  const captionStyle = useCaptionStore((s) => s.captionStyle)
   const requestSeek = useCaptionStore((s) => s.requestSeek)
   const undo = useCaptionStore((s) => s.undo)
   const redo = useCaptionStore((s) => s.redo)
@@ -584,7 +584,7 @@ export function CaptionEditor() {
               speakerFontSize={speakerFontSize}
               effectiveTextColor={effectiveTextColor}
               speakers={speakers}
-              burnStyle={burnStyle}
+              captionStyle={captionStyle}
               autoEditText={autoEditId === cap.id}
               onSeek={requestSeek}
               onToggleSelect={handleToggleSelect}

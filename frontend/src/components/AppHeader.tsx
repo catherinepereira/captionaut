@@ -10,13 +10,21 @@ export function AppHeader({ onNewVideo, onOpenSettings }: Props) {
   const state = useCaptionStore((s) => s.state)
   const videoFileName = useCaptionStore((s) => s.videoFile?.name ?? null)
   const isLanding = state === 'idle'
-  const canStartOver = state === 'editing' || state === 'burning'
+  const canStartOver = state === 'editing' || state === 'rendering'
 
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
-        <span className={styles.dot} aria-hidden="true" />
-        <span className={styles.logoText}>Captionaut</span>
+        <button
+          type="button"
+          className={styles.logoBtn}
+          onClick={onNewVideo}
+          disabled={isLanding}
+          aria-label="Return to home"
+        >
+          <span className={styles.logoEmoji} aria-hidden="true">👩‍🚀</span>
+          <span className={styles.logoText}>Captionaut</span>
+        </button>
         {videoFileName && !isLanding && (
           <>
             <span className={styles.separator} aria-hidden="true">/</span>

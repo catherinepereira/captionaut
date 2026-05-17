@@ -1,7 +1,7 @@
 .panel {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 6px;
   overflow: visible;
   margin-bottom: 12px;
 }
@@ -19,7 +19,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 .count {
@@ -67,8 +67,8 @@
 
 .paletteBtn:hover,
 .paletteBtn:focus-visible {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .addBtn {
@@ -84,14 +84,14 @@
 }
 
 .addBtn:hover {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .addInput {
   flex: 1;
   background: var(--bg-input);
-  border: 1px solid var(--purple);
+  border: 1px solid var(--accent);
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 13px;

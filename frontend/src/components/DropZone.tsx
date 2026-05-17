@@ -52,7 +52,7 @@ export function DropZone({ onFile, disabled }: Props) {
       <p className={styles.label}>
         Drop your video here or <span className={styles.link}>browse files</span>
       </p>
-      <p className={styles.hint}>mp4, mov, mkv. Stays on your machine.</p>
+      <p className={styles.hint}>mp4, mov, mkv. Up to 2 GB.</p>
     </button>
   )
 }

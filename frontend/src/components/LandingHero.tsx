@@ -8,14 +8,14 @@ interface Props {
 export function LandingHero({ onFile }: Props) {
   return (
     <section className={styles.hero} aria-labelledby="hero-headline">
-      <p className={styles.tagline}>LOCAL · PRIVATE · OFFLINE</p>
+      <p className={styles.tagline}>SUBTITLES AT LIGHT SPEED</p>
       <h1 id="hero-headline" className={styles.headline}>
-        Captions that<br />
-        <span className={styles.accent}>burn in.</span>
+        Captions for<br />
+        <span className={styles.accent}>every frame.</span>
       </h1>
       <p className={styles.subheadline}>
         Drop a video. Whisper transcribes it. Edit every word inline.<br />
-        Burn captions directly into the file.
+        Export captions, render them onto the file, or both.
       </p>
 
       <DropZone onFile={onFile} />
@@ -26,15 +26,15 @@ export function LandingHero({ onFile }: Props) {
           <dd className={styles.featureValue}>Whisper AI</dd>
         </div>
         <div>
-          <dt className={styles.featureLabel}>OUTPUT</dt>
+          <dt className={styles.featureLabel}>SPEAKERS</dt>
           <dd className={styles.featureValue}>
-            .srt · .vtt · <span className={styles.accent}>burned in</span>
+            <span className={styles.accent}>auto-detected</span>
           </dd>
         </div>
         <div>
-          <dt className={styles.featureLabel}>PRIVACY</dt>
+          <dt className={styles.featureLabel}>OUTPUT</dt>
           <dd className={styles.featureValue}>
-            100% <span className={styles.accent}>local</span>
+            .srt · .vtt · <span className={styles.accent}>mp4</span>
           </dd>
         </div>
       </dl>

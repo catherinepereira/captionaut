@@ -15,7 +15,7 @@ export function useProjectPersistence(): void {
   const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
   const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
   const alignment = useCaptionStore((s) => s.alignment)
-  const burnStyle = useCaptionStore((s) => s.burnStyle)
+  const captionStyle = useCaptionStore((s) => s.captionStyle)
 
   useEffect(() => {
     if (!jobId || captions.length === 0 || !videoFile) return
@@ -32,12 +32,12 @@ export function useProjectPersistence(): void {
       speakerFontFamilies,
       speakerFontSizes,
       alignment,
-      burnStyle,
+      captionStyle,
     })
   }, [
     jobId, videoFile, captions, speakers,
     speakerColors, speakerOutlineColors, speakerOutlineThickness,
     speakerFontFamilies, speakerFontSizes,
-    alignment, burnStyle,
+    alignment, captionStyle,
   ])
 }

@@ -6,7 +6,7 @@ import styles from './VideoPlayer.module.css'
 // Multi-stop CSS text-shadow approximating an N-pixel ASS outline.
 function buildOutlineShadow(color: string, thickness: number): string | undefined {
   if (thickness <= 0) return undefined
-  // The overlay font is rendered at 0.5x the burn size, so halve thickness too.
+  // The overlay font is shown at 0.5x the export size, so halve thickness too.
   const radius = Math.max(0.5, thickness * 0.5)
   const steps = Math.max(8, Math.round(radius * 4))
   const parts: string[] = []
@@ -32,7 +32,7 @@ export function VideoPlayer() {
   const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
   const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
   const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
-  const burnStyle = useCaptionStore((s) => s.burnStyle)
+  const captionStyle = useCaptionStore((s) => s.captionStyle)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -106,25 +106,25 @@ export function VideoPlayer() {
   const speakerFontSize = sp ? speakerFontSizes[sp] : undefined
 
   const textColor =
-    activeCaption?.color_override ?? speakerTextColor ?? burnStyle.color
+    activeCaption?.color_override ?? speakerTextColor ?? captionStyle.color
   const outlineColor =
-    activeCaption?.outline_override ?? speakerOutlineColor ?? burnStyle.outlineColor
+    activeCaption?.outline_override ?? speakerOutlineColor ?? captionStyle.outlineColor
   const thickness =
-    activeCaption?.outline_thickness ?? speakerThickness ?? burnStyle.outlineThickness
+    activeCaption?.outline_thickness ?? speakerThickness ?? captionStyle.outlineThickness
 
   const fontFamily =
-    activeCaption?.font_family ?? speakerFontFamily ?? burnStyle.fontFamily
+    activeCaption?.font_family ?? speakerFontFamily ?? captionStyle.fontFamily
   const fontSizePx = Math.round(
-    (activeCaption?.font_size ?? speakerFontSize ?? burnStyle.fontSize) * 0.5,
+    (activeCaption?.font_size ?? speakerFontSize ?? captionStyle.fontSize) * 0.5,
   )
 
   // Map (posX, posY, align) to CSS placement that matches the ASS \pos +
   // bottom-row alignment semantics: (x,y) is the bottom of the text bbox;
   // align picks which horizontal edge of the bbox sits at x.
-  const align = burnStyle.align
+  const align = captionStyle.align
   const overlayPlacement: React.CSSProperties = {
-    left: `${burnStyle.posX}%`,
-    top: `${burnStyle.posY}%`,
+    left: `${captionStyle.posX}%`,
+    top: `${captionStyle.posY}%`,
     textAlign: align,
     maxWidth: align === 'center' ? '90%' : '50%',
     transform: (() => {

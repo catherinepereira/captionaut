@@ -1,6 +1,6 @@
 .zone {
   border: 2px dashed var(--border);
-  border-radius: 16px;
+  border-radius: 6px;
   padding: 60px 40px;
   text-align: center;
   cursor: pointer;
@@ -17,17 +17,17 @@
 
 .zone:hover:not(.disabled),
 .zone:focus-visible:not(.disabled) {
-  border-color: var(--purple);
+  border-color: var(--accent);
   background: #1a1535;
   outline: none;
 }
 
 .zone:focus-visible:not(.disabled) {
-  box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.35);
+  box-shadow: 0 0 0 3px rgba(107, 140, 179, 0.35);
 }
 
 .dragging {
-  border-color: var(--purple);
+  border-color: var(--accent);
   background: #1a1535;
 }
 
@@ -42,7 +42,7 @@
 }
 
 .link {
-  color: var(--purple-light);
+  color: var(--accent-light);
   text-decoration: underline;
   cursor: pointer;
 }

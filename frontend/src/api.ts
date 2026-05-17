@@ -1,5 +1,5 @@
 import type {
-  Caption, AlignmentResult, BurnStyle, ModelSize, DiarizationConfig,
+  Caption, AlignmentResult, CaptionStyle, ModelSize, DiarizationConfig,
 } from './stores/captionStore'
 
 export interface TranscribeResult {
@@ -67,13 +67,13 @@ function nonEmpty<T extends Record<string, unknown>>(m: T): T | null {
   return Object.keys(m).length > 0 ? m : null
 }
 
-export async function burnCaptions(
+export async function renderCaptions(
   jobId: string,
   captions: Caption[],
-  style: BurnStyle,
+  style: CaptionStyle,
   speakers: SpeakerStyleMaps,
 ): Promise<Blob> {
-  const res = await fetch(`${BASE}/burn`, {
+  const res = await fetch(`${BASE}/render`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

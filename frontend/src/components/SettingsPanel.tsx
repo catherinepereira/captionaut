@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { loadSettings, saveSettings, type UserSettings } from '../utils/settings'
-import { useCaptionStore, type ModelSize, type BurnStyle, type HorizontalAlign } from '../stores/captionStore'
+import { useCaptionStore, type ModelSize, type CaptionStyle, type HorizontalAlign } from '../stores/captionStore'
 import { FONT_OPTIONS } from '../utils/fonts'
 import styles from './SettingsPanel.module.css'
 
@@ -14,7 +14,7 @@ const ALIGN_VALUES: HorizontalAlign[] = ['left', 'center', 'right']
 
 export function SettingsPanel({ open, onClose }: Props) {
   const [draft, setDraft] = useState<UserSettings>(() => loadSettings())
-  const setBurnStyle = useCaptionStore((s) => s.setBurnStyle)
+  const setCaptionStyle = useCaptionStore((s) => s.setCaptionStyle)
   const titleId = useId()
   const modelId = useId()
   const tokenId = useId()
@@ -36,13 +36,13 @@ export function SettingsPanel({ open, onClose }: Props) {
 
   const save = () => {
     saveSettings(draft)
-    // Apply the new default burn style to any active session immediately.
-    setBurnStyle(draft.defaultBurnStyle)
+    // Apply the new default caption style to any active session immediately.
+    setCaptionStyle(draft.defaultCaptionStyle)
     onClose()
   }
 
-  const patchBurn = (patch: Partial<BurnStyle>) => {
-    setDraft({ ...draft, defaultBurnStyle: { ...draft.defaultBurnStyle, ...patch } })
+  const patchStyle = (patch: Partial<CaptionStyle>) => {
+    setDraft({ ...draft, defaultCaptionStyle: { ...draft.defaultCaptionStyle, ...patch } })
   }
 
   return (
@@ -84,19 +84,19 @@ export function SettingsPanel({ open, onClose }: Props) {
             className={styles.input}
             autoComplete="off"
           />
-          <p className={styles.hint}>Used for pyannote diarization. Stays on your machine.</p>
+          <p className={styles.hint}>Used for pyannote speaker identification.</p>
         </section>
 
         <section className={styles.section}>
-          <span className={styles.label}>Default burn-in style</span>
+          <span className={styles.label}>Default caption style</span>
           <div className={styles.styleGrid}>
             <label htmlFor={fontId} className={styles.subLabel}>Font</label>
             <select
               id={fontId}
-              value={draft.defaultBurnStyle.fontFamily}
-              onChange={(e) => patchBurn({ fontFamily: e.target.value })}
+              value={draft.defaultCaptionStyle.fontFamily}
+              onChange={(e) => patchStyle({ fontFamily: e.target.value })}
               className={styles.input}
-              style={{ fontFamily: draft.defaultBurnStyle.fontFamily }}
+              style={{ fontFamily: draft.defaultCaptionStyle.fontFamily }}
             >
               {FONT_OPTIONS.map((f) => (
                 <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
@@ -107,16 +107,16 @@ export function SettingsPanel({ open, onClose }: Props) {
               id={sizeId}
               type="number"
               min={12} max={200}
-              value={draft.defaultBurnStyle.fontSize}
-              onChange={(e) => patchBurn({ fontSize: Number(e.target.value) })}
+              value={draft.defaultCaptionStyle.fontSize}
+              onChange={(e) => patchStyle({ fontSize: Number(e.target.value) })}
               className={styles.input}
             />
             <label htmlFor={colorId} className={styles.subLabel}>Text</label>
             <input
               id={colorId}
               type="color"
-              value={draft.defaultBurnStyle.color}
-              onChange={(e) => patchBurn({ color: e.target.value })}
+              value={draft.defaultCaptionStyle.color}
+              onChange={(e) => patchStyle({ color: e.target.value })}
               className={styles.color}
               aria-label="Text color"
             />
@@ -124,8 +124,8 @@ export function SettingsPanel({ open, onClose }: Props) {
             <input
               id={outlineId}
               type="color"
-              value={draft.defaultBurnStyle.outlineColor}
-              onChange={(e) => patchBurn({ outlineColor: e.target.value })}
+              value={draft.defaultCaptionStyle.outlineColor}
+              onChange={(e) => patchStyle({ outlineColor: e.target.value })}
               className={styles.color}
               aria-label="Outline color"
             />
@@ -135,8 +135,8 @@ export function SettingsPanel({ open, onClose }: Props) {
               min={0}
               max={10}
               step={0.5}
-              value={draft.defaultBurnStyle.outlineThickness}
-              onChange={(e) => patchBurn({ outlineThickness: parseFloat(e.target.value) })}
+              value={draft.defaultCaptionStyle.outlineThickness}
+              onChange={(e) => patchStyle({ outlineThickness: parseFloat(e.target.value) })}
               aria-label="Outline thickness"
             />
             <span className={styles.subLabel}>X (%)</span>
@@ -145,8 +145,8 @@ export function SettingsPanel({ open, onClose }: Props) {
               min={0}
               max={100}
               step={1}
-              value={draft.defaultBurnStyle.posX}
-              onChange={(e) => patchBurn({ posX: Number(e.target.value) })}
+              value={draft.defaultCaptionStyle.posX}
+              onChange={(e) => patchStyle({ posX: Number(e.target.value) })}
               aria-label="Horizontal position percent"
             />
             <span className={styles.subLabel}>Y (%)</span>
@@ -155,8 +155,8 @@ export function SettingsPanel({ open, onClose }: Props) {
               min={0}
               max={100}
               step={1}
-              value={draft.defaultBurnStyle.posY}
-              onChange={(e) => patchBurn({ posY: Number(e.target.value) })}
+              value={draft.defaultCaptionStyle.posY}
+              onChange={(e) => patchStyle({ posY: Number(e.target.value) })}
               aria-label="Vertical position percent"
             />
             <span className={styles.subLabel} id={`${titleId}-align`}>Align</span>
@@ -170,9 +170,9 @@ export function SettingsPanel({ open, onClose }: Props) {
                   key={a}
                   type="button"
                   role="radio"
-                  aria-checked={draft.defaultBurnStyle.align === a}
-                  className={`${styles.posBtn} ${draft.defaultBurnStyle.align === a ? styles.posActive : ''}`}
-                  onClick={() => patchBurn({ align: a })}
+                  aria-checked={draft.defaultCaptionStyle.align === a}
+                  className={`${styles.posBtn} ${draft.defaultCaptionStyle.align === a ? styles.posActive : ''}`}
+                  onClick={() => patchStyle({ align: a })}
                 >
                   {a}
                 </button>

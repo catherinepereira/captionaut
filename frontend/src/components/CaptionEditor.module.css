@@ -1,7 +1,7 @@
 .editor {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 6px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -10,13 +10,13 @@
 }
 
 .dropTarget {
-  border-color: var(--purple);
+  border-color: var(--accent);
 }
 
 .dropOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(124, 92, 252, 0.18);
+  background: rgba(107, 140, 179, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,7 +25,7 @@
   font-weight: 600;
   z-index: 10;
   pointer-events: none;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .header {
@@ -41,7 +41,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 .count {
@@ -54,8 +54,8 @@
 }
 
 .addBtn {
-  background: var(--purple);
-  border: 1px solid var(--purple);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   color: #fff;
   font-size: 12px;
   font-weight: 600;
@@ -69,8 +69,8 @@
 }
 
 .addBtn:hover {
-  background: var(--purple-light);
-  border-color: var(--purple-light);
+  background: var(--accent-light);
+  border-color: var(--accent-light);
 }
 
 .historyBtn {
@@ -87,8 +87,8 @@
 }
 
 .historyBtn:hover:not(:disabled) {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .historyBtn:disabled {
@@ -108,7 +108,7 @@
 .bulkCount {
   font-size: 12px;
   font-weight: 600;
-  color: var(--purple-light);
+  color: var(--accent-light);
 }
 
 .bulkSpacer {
@@ -127,8 +127,8 @@
 }
 
 .bulkBtn:hover:not(:disabled) {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .bulkBtn:disabled {
@@ -223,7 +223,7 @@
 }
 
 .speakerSelect:hover {
-  border-color: var(--purple-light);
+  border-color: var(--accent-light);
 }
 
 .styleSlot {
@@ -248,8 +248,8 @@
 
 .paletteBtn:hover,
 .paletteBtn:focus-visible {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .checkbox {
@@ -258,7 +258,7 @@
   right: 14px;
   width: 14px;
   height: 14px;
-  accent-color: var(--purple);
+  accent-color: var(--accent);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s;
@@ -270,7 +270,7 @@
 }
 
 .selected {
-  background: rgba(124, 92, 252, 0.08);
+  background: rgba(107, 140, 179, 0.08);
 }
 
 .list {
@@ -312,13 +312,13 @@
 
 .row:focus-visible {
   background: var(--bg-input);
-  outline: 2px solid var(--purple);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
 .active {
   background: #1e1a40;
-  border-left: 3px solid var(--purple);
+  border-left: 3px solid var(--accent);
 }
 
 .mismatch {
@@ -344,8 +344,8 @@
 
 .time:hover,
 .time:focus-visible {
-  color: var(--purple-light);
-  outline: 2px solid var(--purple);
+  color: var(--accent-light);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -359,7 +359,7 @@
   font-family: monospace;
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--purple);
+  border: 1px solid var(--accent);
   border-radius: 4px;
   padding: 2px 6px;
   width: 72px;
@@ -375,8 +375,8 @@
 
 .text:hover,
 .text:focus-visible {
-  color: var(--purple-light);
-  outline: 2px solid var(--purple);
+  color: var(--accent-light);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -386,7 +386,7 @@
   font-size: 14px;
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--purple);
+  border: 1px solid var(--accent);
   border-radius: 6px;
   padding: 6px 8px;
   resize: vertical;

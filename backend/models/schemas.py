@@ -48,7 +48,7 @@ class AlignmentResult(BaseModel):
 HorizontalAlign = Literal["left", "center", "right"]
 
 
-class BurnStyle(BaseModel):
+class CaptionStyle(BaseModel):
     fontFamily: str = "Arial"
     fontSize: int = 48
     color: str = "#000000"
@@ -59,10 +59,10 @@ class BurnStyle(BaseModel):
     align: HorizontalAlign = "center"
 
 
-class BurnRequest(BaseModel):
+class RenderRequest(BaseModel):
     job_id: str
     captions: list[Caption]
-    style: BurnStyle | None = None
+    style: CaptionStyle | None = None
     speaker_colors: dict[str, str] | None = None
     speaker_outline_colors: dict[str, str] | None = None
     speaker_outline_thickness: dict[str, float] | None = None

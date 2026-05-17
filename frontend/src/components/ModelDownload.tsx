@@ -54,8 +54,8 @@ export function ModelDownload({ onReady }: Props) {
       <div className={styles.card}>
         <h2 className={styles.title}>One-time setup</h2>
         <p className={styles.desc}>
-          Captionaut uses <strong>Whisper AI</strong> to transcribe your videos locally.
-          The model needs to be downloaded once (~145 MB) and stays on your machine.
+          Captionaut uses <strong>Whisper AI</strong> to transcribe your videos.
+          The transcription model is about 145 MB and only needs to download once.
         </p>
 
         {error && <p className={styles.error}>{error}</p>}
@@ -74,7 +74,7 @@ export function ModelDownload({ onReady }: Props) {
         )}
 
         <p className={styles.privacy}>
-          Everything stays on your machine. No data ever leaves your computer.
+          You only need to do this once per environment.
         </p>
       </div>
     </div>

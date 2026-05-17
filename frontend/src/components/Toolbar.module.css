@@ -20,13 +20,13 @@
   font-size: 13px;
   font-weight: 500;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .btn:hover:not(:disabled) {
-  border-color: var(--purple-light);
-  color: var(--purple-light);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
 }
 
 .btn:disabled {
@@ -35,14 +35,14 @@
 }
 
 .primary {
-  background: var(--purple);
-  border-color: var(--purple);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
   font-weight: 600;
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--purple-light);
-  border-color: var(--purple-light);
+  background: var(--accent-light);
+  border-color: var(--accent-light);
   color: #fff;
 }

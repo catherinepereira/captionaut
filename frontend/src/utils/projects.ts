@@ -1,5 +1,5 @@
 import type {
-  Caption, BurnStyle, AlignmentResult,
+  Caption, CaptionStyle, AlignmentResult,
 } from '../stores/captionStore'
 
 const STORAGE_PREFIX = 'captionaut.project.'
@@ -23,7 +23,7 @@ export interface SavedProject {
   speakerFontFamilies: Record<string, string>
   speakerFontSizes: Record<string, number>
   alignment: AlignmentResult[]
-  burnStyle: BurnStyle
+  captionStyle: CaptionStyle
 }
 
 function key(jobId: string): string {

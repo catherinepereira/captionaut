@@ -1,4 +1,4 @@
-"""Burn captions into MP4 + SRT/VTT export."""
+"""Render captions into MP4 + SRT/VTT export."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import re
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 
-from ..models.schemas import BurnRequest, ExportRequest
+from ..models.schemas import ExportRequest, RenderRequest
 from ..services import ffmpeg_service
 from ._job_cache import get_dirs, get_job, touch_job
 
@@ -18,8 +18,8 @@ router = APIRouter()
 _UUID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
 
 
-@router.post("/burn", response_class=FileResponse)
-async def burn(req: BurnRequest):
+@router.post("/render", response_class=FileResponse)
+async def render(req: RenderRequest):
     if not _UUID_RE.match(req.job_id):
         raise HTTPException(400, "Invalid job id")
     _, OUTPUT_DIR = get_dirs()
@@ -32,7 +32,7 @@ async def burn(req: BurnRequest):
     await loop.run_in_executor(
         None,
         functools.partial(
-            ffmpeg_service.burn_captions,
+            ffmpeg_service.render_captions,
             job["path"],
             req.captions,
             out_path,

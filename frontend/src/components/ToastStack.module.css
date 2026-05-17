@@ -16,26 +16,26 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: #1d1a2e;
-  border: 1px solid #2d2849;
-  color: #e8e4ff;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
   font-size: 13.5px;
   line-height: 1.5;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   animation: slideIn 180ms ease-out;
 }
 
 .info {
-  border-left: 3px solid #7c5cfc;
+  border-left: 3px solid var(--accent);
 }
 
 .warn {
-  border-left: 3px solid #ffa726;
+  border-left: 3px solid #d3a06b;
 }
 
 .error {
-  border-left: 3px solid #e05c7a;
+  border-left: 3px solid var(--red);
 }
 
 .message {
@@ -46,7 +46,7 @@
 .close {
   background: transparent;
   border: none;
-  color: #7a74a0;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
@@ -56,8 +56,8 @@
 
 .close:hover,
 .close:focus-visible {
-  color: #e8e4ff;
-  outline: 2px solid #7c5cfc;
+  color: var(--text);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

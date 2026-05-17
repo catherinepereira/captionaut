@@ -12,7 +12,7 @@ export function SpeakerPanel() {
   const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
   const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
   const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
-  const burnStyle = useCaptionStore((s) => s.burnStyle)
+  const captionStyle = useCaptionStore((s) => s.captionStyle)
   const setSpeakerColor = useCaptionStore((s) => s.setSpeakerColor)
   const setSpeakerOutlineColor = useCaptionStore((s) => s.setSpeakerOutlineColor)
   const setSpeakerOutlineThickness = useCaptionStore((s) => s.setSpeakerOutlineThickness)
@@ -25,7 +25,7 @@ export function SpeakerPanel() {
   const [draft, setDraft] = useState('')
 
   // Hide the panel until we're actually editing a transcribed video.
-  if (state !== 'editing' && state !== 'burning') return null
+  if (state !== 'editing' && state !== 'rendering') return null
 
   const commitAdd = () => {
     if (draft.trim()) addSpeaker(draft)
@@ -41,11 +41,11 @@ export function SpeakerPanel() {
       </div>
       <div className={styles.list}>
         {speakers.map((label) => {
-          const textColor = speakerColors[label] ?? burnStyle.color
-          const outlineColor = speakerOutlineColors[label] ?? burnStyle.outlineColor
-          const thickness = speakerOutlineThickness[label] ?? burnStyle.outlineThickness
-          const fontFamily = speakerFontFamilies[label] ?? burnStyle.fontFamily
-          const fontSize = speakerFontSizes[label] ?? burnStyle.fontSize
+          const textColor = speakerColors[label] ?? captionStyle.color
+          const outlineColor = speakerOutlineColors[label] ?? captionStyle.outlineColor
+          const thickness = speakerOutlineThickness[label] ?? captionStyle.outlineThickness
+          const fontFamily = speakerFontFamilies[label] ?? captionStyle.fontFamily
+          const fontSize = speakerFontSizes[label] ?? captionStyle.fontSize
           const isOpen = openSpeaker === label
 
           return (
@@ -75,11 +75,11 @@ export function SpeakerPanel() {
                     fontSize,
                   }}
                   defaults={{
-                    color: burnStyle.color,
-                    outlineColor: burnStyle.outlineColor,
-                    outlineThickness: burnStyle.outlineThickness,
-                    fontFamily: burnStyle.fontFamily,
-                    fontSize: burnStyle.fontSize,
+                    color: captionStyle.color,
+                    outlineColor: captionStyle.outlineColor,
+                    outlineThickness: captionStyle.outlineThickness,
+                    fontFamily: captionStyle.fontFamily,
+                    fontSize: captionStyle.fontSize,
                   }}
                   onChange={(patch: Partial<StyleValues>) => {
                     if (patch.color != null) setSpeakerColor(label, patch.color)

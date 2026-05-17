@@ -1,9 +1,9 @@
 """Bounded in-memory job cache.
 
-Tracks per-job paths (upload, burn output, denoised audio), progress, status,
-captions, and speakers. When the LRU evicts the oldest non-active job, its
-disk artifacts are deleted alongside the entry. An in-flight guard prevents
-eviction during a running transcription.
+Tracks per-job paths (upload, rendered output, denoised audio), progress,
+status, captions, and speakers. When the LRU evicts the oldest non-active
+job, its disk artifacts are deleted alongside the entry. An in-flight guard
+prevents eviction during a running transcription.
 """
 
 from __future__ import annotations

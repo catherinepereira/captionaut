@@ -12,7 +12,7 @@
 .panel {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 6px;
   padding: 24px;
   width: 100%;
   max-width: 480px;
@@ -56,7 +56,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--purple-light);
+  color: var(--accent-light);
   margin-bottom: 8px;
 }
 
@@ -81,7 +81,7 @@
 
 .input:focus,
 .select:focus {
-  border-color: var(--purple);
+  border-color: var(--accent);
 }
 
 .color {
@@ -125,19 +125,19 @@
 }
 
 .posBtn:hover {
-  border-color: var(--purple-light);
+  border-color: var(--accent-light);
   color: var(--text);
 }
 
 .posActive {
-  background: var(--purple);
-  border-color: var(--purple);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
 .posActive:hover {
-  background: var(--purple-light);
-  border-color: var(--purple-light);
+  background: var(--accent-light);
+  border-color: var(--accent-light);
   color: #fff;
 }
 
@@ -156,21 +156,21 @@
   color: var(--text-muted);
   font-size: 13px;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
 .saveBtn {
-  background: var(--purple);
-  border: 1px solid var(--purple);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 18px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
 .saveBtn:hover {
-  background: var(--purple-light);
+  background: var(--accent-light);
 }

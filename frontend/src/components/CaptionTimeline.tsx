@@ -18,7 +18,7 @@ export function CaptionTimeline() {
   const videoDuration = useCaptionStore((s) => s.videoDuration)
   const currentTime = useCaptionStore((s) => s.currentTime)
   const speakerColors = useCaptionStore((s) => s.speakerColors)
-  const burnStyle = useCaptionStore((s) => s.burnStyle)
+  const captionStyle = useCaptionStore((s) => s.captionStyle)
   const requestSeek = useCaptionStore((s) => s.requestSeek)
   const requestScrollToCaption = useCaptionStore((s) => s.requestScrollToCaption)
 
@@ -114,7 +114,7 @@ export function CaptionTimeline() {
             const widthPct = ((cap.end - cap.start) / totalDuration) * 100
             const color = cap.color_override
               ?? (cap.speaker ? speakerColors[cap.speaker] : null)
-              ?? burnStyle.color
+              ?? captionStyle.color
             const isActive = cap.id === activeId
             return (
               <button

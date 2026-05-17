@@ -29,13 +29,13 @@ export function App() {
   useGlobalKeybinds()
   useProjectPersistence()
 
-  // Apply the user's saved default burn style on first render.
+  // Apply the user's saved default caption style on first render.
   useEffect(() => {
-    useCaptionStore.getState().setBurnStyle(loadSettings().defaultBurnStyle)
+    useCaptionStore.getState().setCaptionStyle(loadSettings().defaultCaptionStyle)
   }, [])
 
   const isBusy = state === 'uploading' || state === 'transcribing'
-  const isEditing = state === 'editing' || state === 'burning'
+  const isEditing = state === 'editing' || state === 'rendering'
 
   return (
     <div className={styles.app}>

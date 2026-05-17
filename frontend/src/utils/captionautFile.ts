@@ -1,5 +1,5 @@
 import type {
-  Caption, BurnStyle, AlignmentResult,
+  Caption, CaptionStyle, AlignmentResult,
 } from '../stores/captionStore'
 
 export const CAPTIONAUT_FORMAT = 'captionaut'
@@ -17,7 +17,7 @@ export interface CaptionautFile {
   speakerOutlineThickness: Record<string, number>
   speakerFontFamilies: Record<string, string>
   speakerFontSizes: Record<string, number>
-  burnStyle: BurnStyle
+  captionStyle: CaptionStyle
   alignment: AlignmentResult[]
 }
 
@@ -29,7 +29,7 @@ export interface CaptionautImport {
   speakerOutlineThickness: Record<string, number>
   speakerFontFamilies: Record<string, string>
   speakerFontSizes: Record<string, number>
-  burnStyle: BurnStyle
+  captionStyle: CaptionStyle
   alignment: AlignmentResult[]
 }
 
@@ -46,7 +46,7 @@ export function buildCaptionautFile(input: Omit<CaptionautImport, never> & { sou
     speakerOutlineThickness: input.speakerOutlineThickness,
     speakerFontFamilies: input.speakerFontFamilies,
     speakerFontSizes: input.speakerFontSizes,
-    burnStyle: input.burnStyle,
+    captionStyle: input.captionStyle,
     alignment: input.alignment,
   }
 }
@@ -76,7 +76,7 @@ export function parseCaptionautFile(raw: string): CaptionautImport {
     speakerOutlineThickness: rec<number>(parsed.speakerOutlineThickness),
     speakerFontFamilies: rec<string>(parsed.speakerFontFamilies),
     speakerFontSizes: rec<number>(parsed.speakerFontSizes),
-    burnStyle: parsed.burnStyle as BurnStyle,
+    captionStyle: parsed.captionStyle as CaptionStyle,
     alignment: arr<AlignmentResult>(parsed.alignment),
   }
 }
