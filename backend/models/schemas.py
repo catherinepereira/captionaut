@@ -14,6 +14,9 @@ class Caption(BaseModel):
     outline_thickness: float | None = None
     font_family: str | None = None
     font_size: int | None = None
+    pos_x_override: float | None = None  # 0..100, percent of video width
+    pos_y_override: float | None = None  # 0..100, percent of video height
+    align_override: str | None = None    # "left" | "center" | "right"
 
 
 ModelSize = Literal["tiny", "base", "small", "medium", "large"]
@@ -59,15 +62,22 @@ class CaptionStyle(BaseModel):
     align: HorizontalAlign = "center"
 
 
+RenderFormat = Literal["mp4", "webm", "mov"]
+
+
 class RenderRequest(BaseModel):
     job_id: str
     captions: list[Caption]
     style: CaptionStyle | None = None
+    format: RenderFormat = "mp4"
     speaker_colors: dict[str, str] | None = None
     speaker_outline_colors: dict[str, str] | None = None
     speaker_outline_thickness: dict[str, float] | None = None
     speaker_font_families: dict[str, str] | None = None
     speaker_font_sizes: dict[str, int] | None = None
+    speaker_pos_x: dict[str, float] | None = None
+    speaker_pos_y: dict[str, float] | None = None
+    speaker_align: dict[str, str] | None = None
 
 
 class ExportRequest(BaseModel):

@@ -1,5 +1,5 @@
 import type {
-  Caption, CaptionStyle, AlignmentResult,
+  Caption, CaptionStyle, AlignmentResult, HorizontalAlign,
 } from '../stores/captionStore'
 
 const STORAGE_PREFIX = 'captionaut.project.'
@@ -22,8 +22,12 @@ export interface SavedProject {
   speakerOutlineThickness: Record<string, number>
   speakerFontFamilies: Record<string, string>
   speakerFontSizes: Record<string, number>
+  speakerPosX?: Record<string, number>
+  speakerPosY?: Record<string, number>
+  speakerAlign?: Record<string, HorizontalAlign>
   alignment: AlignmentResult[]
   captionStyle: CaptionStyle
+  thumbnail?: string  // data: URL captured from the video
 }
 
 function key(jobId: string): string {

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useCaptionStore, type ModelSize } from '../stores/captionStore'
 import { loadSettings, saveSettings } from '../utils/settings'
-import styles from './ConfigScreen.module.css'
 
 interface ModelOption {
   value: ModelSize
@@ -23,11 +22,16 @@ interface Props {
   onCancel: () => void
 }
 
+const labelClass = 'block text-xs font-semibold tracking-[0.06em] uppercase text-accent-light mb-2.5'
+const hintClass = 'mt-2 text-xs text-text-dim leading-snug'
+const inputClass = 'w-full bg-bg border border-border text-text-primary text-[13px] px-2.5 py-2 rounded-md outline-none focus:border-accent'
+
 export function ConfigScreen({ onStart, onCancel }: Props) {
   const videoFile = useCaptionStore((s) => s.videoFile)
   const config = useCaptionStore((s) => s.transcribeConfig)
   const setConfig = useCaptionStore((s) => s.setTranscribeConfig)
   const setDiarization = useCaptionStore((s) => s.setDiarizationConfig)
+  const isReTranscribing = useCaptionStore((s) => s.isReTranscribing)
   const scriptInputRef = useRef<HTMLInputElement>(null)
 
   const onHfTokenChange = (token: string) => {
@@ -35,7 +39,6 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
     saveSettings({ ...loadSettings(), hfToken: token })
   }
 
-  // Hydrate from saved settings on mount (token, default model size).
   useEffect(() => {
     const s = loadSettings()
     if (!config.diarization.hfToken && s.hfToken) {
@@ -48,159 +51,198 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
   }, [])
 
   return (
-    <div className={styles.screen}>
-      <div className={styles.card}>
-        <h2 className={styles.title}>Configure transcription</h2>
-        {videoFile && <p className={styles.filename}>{videoFile.name}</p>}
+    <div className="min-h-[calc(100vh-64px)] flex items-start justify-center px-6 py-12">
+      <div className="bg-card border border-border rounded-md px-9 py-8 w-full max-w-[640px]">
+        <h2 className="text-[22px] font-bold text-text-primary mb-1">
+          {isReTranscribing ? 'Re-transcribe video' : 'Configure transcription'}
+        </h2>
+        {isReTranscribing && (
+          <p className="text-xs text-text-dim mb-3">
+            Running this will replace your current captions, speakers, and edits.
+          </p>
+        )}
+        {videoFile && (
+          <p className="text-[13px] text-text-muted mb-7 overflow-hidden text-ellipsis whitespace-nowrap">
+            {videoFile.name}
+          </p>
+        )}
 
-        <section className={styles.section} aria-labelledby="model-label">
-          <span id="model-label" className={styles.label}>Model</span>
-          <div className={styles.modelGrid} role="radiogroup" aria-labelledby="model-label">
-            {MODEL_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                role="radio"
-                aria-checked={config.modelSize === opt.value}
-                className={`${styles.modelOption} ${config.modelSize === opt.value ? styles.modelOptionActive : ''}`}
-                onClick={() => setConfig({ modelSize: opt.value })}
-              >
-                <span className={styles.modelName}>{opt.label}</span>
-                <span className={styles.modelMeta}>{opt.size} · {opt.speed}</span>
-              </button>
-            ))}
+        <section className="mb-6" aria-labelledby="model-label">
+          <span id="model-label" className={labelClass}>Model</span>
+          <div
+            role="radiogroup"
+            aria-labelledby="model-label"
+            className="grid gap-2"
+            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}
+          >
+            {MODEL_OPTIONS.map((opt) => {
+              const active = config.modelSize === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={`flex flex-col gap-1 px-2.5 py-3 rounded-md border text-left transition-colors ${
+                    active
+                      ? 'bg-accent border-accent text-white hover:bg-accent-light hover:border-accent-light'
+                      : 'bg-input border-border text-text-primary hover:border-accent-light'
+                  }`}
+                  onClick={() => setConfig({ modelSize: opt.value })}
+                >
+                  <span className="text-sm font-semibold">{opt.label}</span>
+                  <span className="text-[11px] opacity-75">{opt.size} · {opt.speed}</span>
+                </button>
+              )
+            })}
           </div>
-          <p className={styles.hint}>
+          <p className={hintClass}>
             Larger models are more accurate but slower. The first run with a new model will download it.
           </p>
         </section>
 
-        <section className={styles.section}>
-          <label htmlFor="prompt" className={styles.label}>
-            Prompt <span className={styles.optional}>(optional)</span>
+        <section className="mb-6">
+          <label htmlFor="prompt" className={labelClass}>
+            Prompt <span className="font-normal normal-case tracking-normal text-text-dim">(optional)</span>
           </label>
           <textarea
             id="prompt"
-            className={styles.textarea}
             rows={3}
-            placeholder="Names, jargon, or context that helps Whisper get spelling right. e.g. &quot;Discussion of Captionaut, FFmpeg, and pyannote.&quot;"
+            placeholder='Names, jargon, or context that helps Whisper get spelling right. e.g. "Discussion of Captionaut, FFmpeg, and pyannote."'
             value={config.initialPrompt}
             onChange={(e) => setConfig({ initialPrompt: e.target.value })}
+            className="w-full bg-input border border-border text-text-primary text-[13px] px-3 py-2.5 rounded-md outline-none resize-y leading-snug focus:border-accent"
           />
         </section>
 
-        <section className={styles.section}>
-          <label className={styles.label}>
-            Script <span className={styles.optional}>(optional)</span>
+        <section className="mb-6">
+          <label className={labelClass}>
+            Script <span className="font-normal normal-case tracking-normal text-text-dim">(optional)</span>
           </label>
           <input
             ref={scriptInputRef}
             type="file"
             accept=".txt,.srt"
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
               if (f) setConfig({ scriptFile: f })
             }}
           />
           {config.scriptFile ? (
-            <div className={styles.scriptPicked}>
-              <span className={styles.scriptName}>{config.scriptFile.name}</span>
+            <div className="flex items-center gap-3 bg-input border border-border rounded-md px-3.5 py-2.5">
+              <span className="flex-1 text-[13px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">
+                {config.scriptFile.name}
+              </span>
               <button
-                className={styles.scriptRemove}
                 onClick={() => setConfig({ scriptFile: null })}
+                className="bg-transparent border-0 text-text-muted text-xs hover:text-red"
               >
                 Remove
               </button>
             </div>
           ) : (
             <button
-              className={styles.scriptPick}
               onClick={() => scriptInputRef.current?.click()}
+              className="w-full bg-transparent border border-dashed border-border text-text-muted text-[13px] py-3.5 rounded-md hover:border-accent-light hover:text-accent-light transition-colors"
             >
               Choose a .txt or .srt file
             </button>
           )}
-          <p className={styles.hint}>
+          <p className={hintClass}>
             If provided, captions will be aligned against the script and mismatches highlighted.
           </p>
         </section>
 
-        <section className={styles.section}>
-          <label className={styles.toggleRow}>
+        <section className="mb-6">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={config.denoise}
               onChange={(e) => setConfig({ denoise: e.target.checked })}
+              className="w-4 h-4 cursor-pointer"
+              style={{ accentColor: 'var(--color-accent)' }}
             />
-            <span className={styles.toggleLabel}>Denoise audio (Demucs vocal isolation)</span>
+            <span className="text-sm font-semibold text-text-primary">Denoise audio (Demucs vocal isolation)</span>
           </label>
-          <p className={styles.hint}>
+          <p className={hintClass}>
             Recommended only for noisy videos. Isolates vocals before transcription.
             Significantly slower; downloads a ~250 MB model on first use.
           </p>
         </section>
 
-        <section className={styles.section}>
-          <label className={styles.toggleRow}>
+        <section className="mb-6">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={config.diarization.enabled}
               onChange={(e) => setDiarization({ enabled: e.target.checked })}
+              className="w-4 h-4 cursor-pointer"
+              style={{ accentColor: 'var(--color-accent)' }}
             />
-            <span className={styles.toggleLabel}>Identify speakers (diarization)</span>
+            <span className="text-sm font-semibold text-text-primary">Identify speakers (diarization)</span>
           </label>
 
           {config.diarization.enabled && (
-            <div className={styles.subOptions}>
-              <div className={styles.subRow}>
-                <label htmlFor="hf-token" className={styles.subLabel}>HuggingFace token</label>
+            <div className="mt-3.5 px-4 py-3.5 bg-input border border-border rounded-md">
+              <div className="mb-3">
+                <label htmlFor="hf-token" className="block text-xs text-text-muted mb-1.5">HuggingFace token</label>
                 <input
                   id="hf-token"
                   type="password"
-                  className={styles.textInput}
                   placeholder="hf_xxx…"
                   value={config.diarization.hfToken}
                   onChange={(e) => onHfTokenChange(e.target.value)}
                   autoComplete="off"
+                  className={inputClass}
                 />
               </div>
-              <p className={styles.hint}>
+              <p className={hintClass + ' mb-3'}>
                 Required by pyannote. Get a token at{' '}
-                <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer" className={styles.link}>
+                <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer" className="text-accent-light underline">
                   huggingface.co/settings/tokens
                 </a>{' '}
                 and accept the model terms at{' '}
-                <a href="https://huggingface.co/pyannote/speaker-diarization-3.1" target="_blank" rel="noreferrer" className={styles.link}>
+                <a href="https://huggingface.co/pyannote/speaker-diarization-3.1" target="_blank" rel="noreferrer" className="text-accent-light underline">
                   pyannote/speaker-diarization-3.1
                 </a>.
               </p>
 
-              <div className={styles.subRow}>
-                <label htmlFor="num-speakers" className={styles.subLabel}>
-                  Number of speakers <span className={styles.optional}>(auto-detect if blank)</span>
+              <div>
+                <label htmlFor="num-speakers" className="block text-xs text-text-muted mb-1.5">
+                  Number of speakers <span className="text-text-dim">(auto-detect if blank)</span>
                 </label>
                 <input
                   id="num-speakers"
                   type="number"
                   min={1}
                   max={20}
-                  className={styles.textInput}
                   placeholder="auto"
                   value={config.diarization.numSpeakers ?? ''}
                   onChange={(e) => {
                     const v = e.target.value === '' ? null : Math.max(1, parseInt(e.target.value, 10))
                     setDiarization({ numSpeakers: Number.isNaN(v as number) ? null : v })
                   }}
+                  className={inputClass}
                 />
               </div>
             </div>
           )}
         </section>
 
-        <div className={styles.actions}>
-          <button className={styles.cancelBtn} onClick={onCancel}>Cancel</button>
-          <button className={styles.startBtn} onClick={onStart}>Start transcription</button>
+        <div className="flex justify-end gap-2.5 mt-8 pt-5 border-t border-border">
+          <button
+            onClick={onCancel}
+            className="bg-transparent border border-border text-text-muted text-[13px] font-medium px-5 py-2.5 rounded-md hover:border-text-muted hover:text-text-primary transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onStart}
+            className="bg-accent border border-accent text-white text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-accent-light hover:border-accent-light transition-colors"
+          >
+            {isReTranscribing ? 'Re-transcribe' : 'Start transcription'}
+          </button>
         </div>
       </div>
     </div>

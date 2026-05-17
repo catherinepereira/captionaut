@@ -1,7 +1,6 @@
 import { useEffect, useId } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
 import { FONT_OPTIONS } from '../utils/fonts'
-import styles from './StylePanel.module.css'
 
 interface Props {
   open: boolean
@@ -13,6 +12,13 @@ const ALIGN_OPTIONS: { value: 'left' | 'center' | 'right'; label: string }[] = [
   { value: 'center', label: 'Center' },
   { value: 'right', label: 'Right' },
 ]
+
+const rowClass = 'flex items-center gap-3 mb-3'
+const labelClass = 'text-xs text-text-muted w-20 shrink-0 font-medium'
+const valueClass = 'text-xs font-mono text-text-muted min-w-[60px]'
+const selectClass = 'flex-1 bg-input border border-border text-text-primary text-[13px] px-2.5 py-1.5 rounded-md outline-none focus:border-accent'
+const rangeClass = 'flex-1 accent-accent'
+const colorClass = 'w-9 h-7 border border-border rounded-md bg-transparent cursor-pointer p-0'
 
 export function StylePanel({ open, onClose }: Props) {
   const { captionStyle, setCaptionStyle } = useCaptionStore()
@@ -30,24 +36,34 @@ export function StylePanel({ open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div className={styles.backdrop} onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] backdrop-blur-[2px]"
+      onClick={onClose}
+    >
       <div
-        className={styles.panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
+        className="bg-card border border-border rounded-lg p-6 w-full max-w-[440px] max-h-[90vh] overflow-y-auto"
       >
-        <div className={styles.header}>
-          <h3 id={titleId} className={styles.title}>Caption style</h3>
-          <button className={styles.close} onClick={onClose} aria-label="Close caption style panel">
+        <div className="flex justify-between items-center mb-4">
+          <h3 id={titleId} className="text-base font-bold text-text-primary">Caption style</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close caption style panel"
+            className="bg-transparent border-0 text-text-muted text-2xl leading-none cursor-pointer px-1.5 hover:text-text-primary"
+          >
             <span aria-hidden="true">×</span>
           </button>
         </div>
 
-        <div className={styles.preview}>
+        <div
+          className="border border-border rounded-md px-4 py-7 mb-5 text-center min-h-[88px] flex items-center justify-center"
+          style={{ background: 'linear-gradient(135deg, #1a1535 0%, #0e0c1a 100%)' }}
+        >
           <div
-            className={styles.previewText}
+            className="font-bold"
             style={{
               fontFamily: captionStyle.fontFamily,
               fontSize: Math.min(captionStyle.fontSize * 0.5, 32),
@@ -59,10 +75,10 @@ export function StylePanel({ open, onClose }: Props) {
           </div>
         </div>
 
-        <div className={styles.row}>
-          <label className={styles.label}>Font</label>
+        <div className={rowClass}>
+          <label className={labelClass}>Font</label>
           <select
-            className={styles.select}
+            className={selectClass}
             value={captionStyle.fontFamily}
             onChange={(e) => setCaptionStyle({ fontFamily: e.target.value })}
           >
@@ -72,103 +88,94 @@ export function StylePanel({ open, onClose }: Props) {
           </select>
         </div>
 
-        <div className={styles.row}>
-          <label className={styles.label}>Size</label>
+        <div className={rowClass}>
+          <label className={labelClass}>Size</label>
           <input
-            className={styles.range}
-            type="range"
-            min={24}
-            max={96}
-            step={2}
+            type="range" min={24} max={96} step={2}
             value={captionStyle.fontSize}
             onChange={(e) => setCaptionStyle({ fontSize: Number(e.target.value) })}
+            className={rangeClass}
           />
-          <span className={styles.value}>{captionStyle.fontSize}px</span>
+          <span className={valueClass}>{captionStyle.fontSize}px</span>
         </div>
 
-        <div className={styles.row}>
-          <label className={styles.label}>Text color</label>
+        <div className={rowClass}>
+          <label className={labelClass}>Text color</label>
           <input
             type="color"
-            className={styles.color}
             value={captionStyle.color}
             onChange={(e) => setCaptionStyle({ color: e.target.value })}
+            className={colorClass}
           />
-          <span className={styles.value}>{captionStyle.color.toUpperCase()}</span>
+          <span className={valueClass}>{captionStyle.color.toUpperCase()}</span>
         </div>
 
-        <div className={styles.row}>
-          <label className={styles.label}>Outline</label>
+        <div className={rowClass}>
+          <label className={labelClass}>Outline</label>
           <input
             type="color"
-            className={styles.color}
             value={captionStyle.outlineColor}
             onChange={(e) => setCaptionStyle({ outlineColor: e.target.value })}
+            className={colorClass}
           />
-          <span className={styles.value}>{captionStyle.outlineColor.toUpperCase()}</span>
+          <span className={valueClass}>{captionStyle.outlineColor.toUpperCase()}</span>
         </div>
 
-        <div className={styles.row}>
-          <label className={styles.label}>Thickness</label>
+        <div className={rowClass}>
+          <label className={labelClass}>Thickness</label>
           <input
-            className={styles.range}
-            type="range"
-            min={0}
-            max={10}
-            step={0.5}
+            type="range" min={0} max={10} step={0.5}
             value={captionStyle.outlineThickness}
             onChange={(e) => setCaptionStyle({ outlineThickness: parseFloat(e.target.value) })}
+            className={rangeClass}
           />
-          <span className={styles.value}>{captionStyle.outlineThickness.toFixed(1)}</span>
+          <span className={valueClass}>{captionStyle.outlineThickness.toFixed(1)}</span>
         </div>
 
-        <div className={styles.row}>
-          <label className={styles.label}>Horizontal</label>
+        <div className={rowClass}>
+          <label className={labelClass}>Horizontal</label>
           <input
-            className={styles.range}
-            type="range"
-            min={0}
-            max={100}
-            step={1}
+            type="range" min={0} max={100} step={1}
             value={captionStyle.posX}
             onChange={(e) => setCaptionStyle({ posX: Number(e.target.value) })}
+            className={rangeClass}
           />
-          <span className={styles.value}>{Math.round(captionStyle.posX)}%</span>
+          <span className={valueClass}>{Math.round(captionStyle.posX)}%</span>
         </div>
 
-        <div className={styles.row}>
-          <label className={styles.label}>Vertical</label>
+        <div className={rowClass}>
+          <label className={labelClass}>Vertical</label>
           <input
-            className={styles.range}
-            type="range"
-            min={0}
-            max={100}
-            step={1}
+            type="range" min={0} max={100} step={1}
             value={captionStyle.posY}
             onChange={(e) => setCaptionStyle({ posY: Number(e.target.value) })}
+            className={rangeClass}
           />
-          <span className={styles.value}>{Math.round(captionStyle.posY)}%</span>
+          <span className={valueClass}>{Math.round(captionStyle.posY)}%</span>
         </div>
 
-        <div className={styles.row}>
-          <span id={`${titleId}-align`} className={styles.label}>Align</span>
-          <div
-            className={styles.positionGroup}
-            role="radiogroup"
-            aria-labelledby={`${titleId}-align`}
-          >
-            {ALIGN_OPTIONS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={captionStyle.align === value}
-                className={`${styles.posBtn} ${captionStyle.align === value ? styles.posBtnActive : ''}`}
-                onClick={() => setCaptionStyle({ align: value })}
-              >
-                {label}
-              </button>
-            ))}
+        <div className={rowClass}>
+          <span id={`${titleId}-align`} className={labelClass}>Align</span>
+          <div className="flex gap-1.5 flex-1" role="radiogroup" aria-labelledby={`${titleId}-align`}>
+            {ALIGN_OPTIONS.map(({ value, label }) => {
+              const active = captionStyle.align === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={`flex-1 text-xs font-medium px-3 py-1.5 rounded-md transition-colors border ${
+                    active
+                      ? 'bg-accent border-accent text-white hover:bg-accent-light hover:border-accent-light'
+                      : 'bg-input border-border text-text-muted hover:border-accent-light hover:text-text-primary'
+                  }`}
+                  onClick={() => setCaptionStyle({ align: value })}
+                >
+                  {label}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>

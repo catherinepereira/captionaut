@@ -1,4 +1,4 @@
-"""Render captions into MP4 + SRT/VTT export."""
+"""Render captions into a video file + SRT/VTT export."""
 
 from __future__ import annotations
 
@@ -17,17 +17,27 @@ router = APIRouter()
 
 _UUID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
 
+_FORMAT_INFO: dict[str, tuple[str, str]] = {
+    "mp4": ("mp4", "video/mp4"),
+    "webm": ("webm", "video/webm"),
+    "mov": ("mov", "video/quicktime"),
+}
+
 
 @router.post("/render", response_class=FileResponse)
 async def render(req: RenderRequest):
     if not _UUID_RE.match(req.job_id):
         raise HTTPException(400, "Invalid job id")
+    if req.format not in _FORMAT_INFO:
+        raise HTTPException(400, f"Unsupported format: {req.format}")
+
     _, OUTPUT_DIR = get_dirs()
     job = get_job(req.job_id)
     if not job:
         raise HTTPException(404, "Job not found")
 
-    out_path = str(OUTPUT_DIR / f"{req.job_id}_captioned.mp4")
+    ext, media_type = _FORMAT_INFO[req.format]
+    out_path = str(OUTPUT_DIR / f"{req.job_id}_captioned.{ext}")
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(
         None,
@@ -37,15 +47,19 @@ async def render(req: RenderRequest):
             req.captions,
             out_path,
             style=req.style,
+            format=req.format,
             speaker_colors=req.speaker_colors,
             speaker_outline_colors=req.speaker_outline_colors,
             speaker_outline_thickness=req.speaker_outline_thickness,
             speaker_font_families=req.speaker_font_families,
             speaker_font_sizes=req.speaker_font_sizes,
+            speaker_pos_x=req.speaker_pos_x,
+            speaker_pos_y=req.speaker_pos_y,
+            speaker_align=req.speaker_align,
         ),
     )
     touch_job(req.job_id, output_path=out_path)
-    return FileResponse(out_path, media_type="video/mp4", filename="captioned.mp4")
+    return FileResponse(out_path, media_type=media_type, filename=f"captioned.{ext}")
 
 
 @router.post("/export")

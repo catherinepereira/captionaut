@@ -1,18 +1,15 @@
-import type { ModelSize, CaptionStyle } from '../stores/captionStore'
-import { DEFAULT_CAPTION_STYLE } from '../stores/captionStore'
+import type { ModelSize } from '../stores/captionStore'
 
 const KEY = 'captionaut.settings'
 
 export interface UserSettings {
   defaultModelSize: ModelSize
   hfToken: string
-  defaultCaptionStyle: CaptionStyle
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
   defaultModelSize: 'base',
   hfToken: '',
-  defaultCaptionStyle: DEFAULT_CAPTION_STYLE,
 }
 
 export function loadSettings(): UserSettings {
@@ -20,11 +17,7 @@ export function loadSettings(): UserSettings {
     const raw = localStorage.getItem(KEY)
     if (!raw) return DEFAULT_SETTINGS
     const parsed = JSON.parse(raw) as Partial<UserSettings>
-    return {
-      ...DEFAULT_SETTINGS,
-      ...parsed,
-      defaultCaptionStyle: { ...DEFAULT_SETTINGS.defaultCaptionStyle, ...(parsed.defaultCaptionStyle ?? {}) },
-    }
+    return { ...DEFAULT_SETTINGS, ...parsed }
   } catch {
     return DEFAULT_SETTINGS
   }

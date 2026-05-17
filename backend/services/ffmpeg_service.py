@@ -180,6 +180,9 @@ def _build_ass(
     speaker_outline_thickness: dict[str, float] | None = None,
     speaker_font_families: dict[str, str] | None = None,
     speaker_font_sizes: dict[str, int] | None = None,
+    speaker_pos_x: dict[str, float] | None = None,
+    speaker_pos_y: dict[str, float] | None = None,
+    speaker_align: dict[str, str] | None = None,
 ) -> str:
     st = style or CaptionStyle()
     default_primary = _hex_to_ass_color(st.color)
@@ -187,9 +190,9 @@ def _build_ass(
     font = _safe_font(st.fontFamily)
     font_size = _safe_font_size(st.fontSize)
     outline_thickness = _safe_outline_thickness(st.outlineThickness)
-    alignment = _ALIGN_NUM.get(st.align, 2)
-    pos_x = round(_clamp_pct(st.posX, 50.0) * PLAY_RES_X / 100)
-    pos_y = round(_clamp_pct(st.posY, 90.0) * PLAY_RES_Y / 100)
+    default_align = _ALIGN_NUM.get(st.align, 2)
+    default_pos_x_pct = _clamp_pct(st.posX, 50.0)
+    default_pos_y_pct = _clamp_pct(st.posY, 90.0)
 
     # One Style per detected speaker, plus Default for unattributed captions.
     # Each speaker carries its own primary, outline, thickness, font, and size.
@@ -197,7 +200,7 @@ def _build_ass(
     style_lines: list[str] = [
         _style_line(
             "Default", font, font_size, default_primary, default_outline,
-            alignment, outline_thickness,
+            default_align, outline_thickness,
         ),
     ]
     if speaker_colors:
@@ -211,10 +214,11 @@ def _build_ass(
             sp_thickness = (speaker_outline_thickness or {}).get(label, outline_thickness)
             sp_font = _safe_font((speaker_font_families or {}).get(label, font))
             sp_size = _safe_font_size((speaker_font_sizes or {}).get(label, font_size))
+            sp_align = _ALIGN_NUM.get((speaker_align or {}).get(label, ""), default_align)
             style_lines.append(
                 _style_line(
                     name, sp_font, sp_size, primary, outline_color,
-                    alignment, sp_thickness,
+                    sp_align, sp_thickness,
                 )
             )
 
@@ -237,11 +241,33 @@ def _build_ass(
         safe_text = _escape_ass_text(cap.text)
         style_name = speaker_style_names.get(cap.speaker or "", "Default")
 
+        # Resolve position + alignment with hierarchy: global < speaker < caption.
+        sp_label = cap.speaker or ""
+        eff_pos_x_pct = default_pos_x_pct
+        eff_pos_y_pct = default_pos_y_pct
+        if sp_label and speaker_pos_x and sp_label in speaker_pos_x:
+            eff_pos_x_pct = _clamp_pct(speaker_pos_x[sp_label], default_pos_x_pct)
+        if sp_label and speaker_pos_y and sp_label in speaker_pos_y:
+            eff_pos_y_pct = _clamp_pct(speaker_pos_y[sp_label], default_pos_y_pct)
+        if cap.pos_x_override is not None:
+            eff_pos_x_pct = _clamp_pct(cap.pos_x_override, eff_pos_x_pct)
+        if cap.pos_y_override is not None:
+            eff_pos_y_pct = _clamp_pct(cap.pos_y_override, eff_pos_y_pct)
+
+        eff_align = default_align
+        if sp_label and speaker_align and sp_label in speaker_align:
+            eff_align = _ALIGN_NUM.get(speaker_align[sp_label], default_align)
+        if cap.align_override:
+            eff_align = _ALIGN_NUM.get(cap.align_override, eff_align)
+
+        pos_x = round(eff_pos_x_pct * PLAY_RES_X / 100)
+        pos_y = round(eff_pos_y_pct * PLAY_RES_Y / 100)
+
         # Per-caption overrides take precedence over the speaker / default
         # style. Emitted as inline `{...}` tags so we don't have to mint a
         # Style per caption. `\pos` anchors the line at the user-chosen
-        # X%/Y% point in the video frame.
-        override_tags = f"\\pos({pos_x},{pos_y})"
+        # X%/Y% point in the video frame; `\an` re-anchors alignment.
+        override_tags = f"\\an{eff_align}\\pos({pos_x},{pos_y})"
         primary_override = _hex_to_ass_inline_color(cap.color_override or "")
         outline_override = _hex_to_ass_inline_color(cap.outline_override or "")
         if primary_override:
@@ -263,16 +289,50 @@ def _build_ass(
     return "\n".join(lines)
 
 
+# Codec + container flags keyed by the user-facing format selector. Each entry
+# lists the additional ffmpeg arguments inserted before the output path.
+_FORMAT_FLAGS: dict[str, list[str]] = {
+    "mp4": [
+        "-c:v", "libx264",
+        "-preset", "medium",
+        "-crf", "20",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-movflags", "+faststart",
+    ],
+    "webm": [
+        "-c:v", "libvpx-vp9",
+        "-b:v", "0",
+        "-crf", "32",
+        "-row-mt", "1",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "libopus",
+        "-b:a", "128k",
+    ],
+    "mov": [
+        "-c:v", "prores_ks",
+        "-profile:v", "3",  # HQ
+        "-pix_fmt", "yuv422p10le",
+        "-c:a", "pcm_s16le",
+    ],
+}
+
+
 def render_captions(
     video_path: str,
     captions: list[Caption],
     output_path: str,
     style: CaptionStyle | None = None,
+    format: str = "mp4",
     speaker_colors: dict[str, str] | None = None,
     speaker_outline_colors: dict[str, str] | None = None,
     speaker_outline_thickness: dict[str, float] | None = None,
     speaker_font_families: dict[str, str] | None = None,
     speaker_font_sizes: dict[str, int] | None = None,
+    speaker_pos_x: dict[str, float] | None = None,
+    speaker_pos_y: dict[str, float] | None = None,
+    speaker_align: dict[str, str] | None = None,
 ) -> str:
     # Write the .ass next to the input video so we can hand ffmpeg a bare
     # filename for the `ass=` filter. Windows paths break libavfilter's
@@ -290,8 +350,15 @@ def render_captions(
             speaker_outline_thickness=speaker_outline_thickness,
             speaker_font_families=speaker_font_families,
             speaker_font_sizes=speaker_font_sizes,
+            speaker_pos_x=speaker_pos_x,
+            speaker_pos_y=speaker_pos_y,
+            speaker_align=speaker_align,
         ))
         ass_path = f.name
+
+    fmt_flags = _FORMAT_FLAGS.get(format)
+    if fmt_flags is None:
+        raise ValueError(f"Unsupported render format: {format!r}")
 
     try:
         cmd = [
@@ -301,8 +368,7 @@ def render_captions(
             video_path,
             "-vf",
             f"ass={os.path.basename(ass_path)}",
-            "-c:a",
-            "copy",
+            *fmt_flags,
             output_path,
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=video_dir)

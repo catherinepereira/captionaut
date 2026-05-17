@@ -61,17 +61,23 @@ export interface SpeakerStyleMaps {
   outlineThickness: Record<string, number>
   fontFamilies: Record<string, string>
   fontSizes: Record<string, number>
+  posX: Record<string, number>
+  posY: Record<string, number>
+  align: Record<string, 'left' | 'center' | 'right'>
 }
 
 function nonEmpty<T extends Record<string, unknown>>(m: T): T | null {
   return Object.keys(m).length > 0 ? m : null
 }
 
+export type RenderFormat = 'mp4' | 'webm' | 'mov'
+
 export async function renderCaptions(
   jobId: string,
   captions: Caption[],
   style: CaptionStyle,
   speakers: SpeakerStyleMaps,
+  format: RenderFormat = 'mp4',
 ): Promise<Blob> {
   const res = await fetch(`${BASE}/render`, {
     method: 'POST',
@@ -80,11 +86,15 @@ export async function renderCaptions(
       job_id: jobId,
       captions,
       style,
+      format,
       speaker_colors: nonEmpty(speakers.colors),
       speaker_outline_colors: nonEmpty(speakers.outlineColors),
       speaker_outline_thickness: nonEmpty(speakers.outlineThickness),
       speaker_font_families: nonEmpty(speakers.fontFamilies),
       speaker_font_sizes: nonEmpty(speakers.fontSizes),
+      speaker_pos_x: nonEmpty(speakers.posX),
+      speaker_pos_y: nonEmpty(speakers.posY),
+      speaker_align: nonEmpty(speakers.align),
     }),
   })
   if (!res.ok) throw new Error(await res.text())

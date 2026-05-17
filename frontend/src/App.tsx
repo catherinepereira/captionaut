@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useCaptionStore } from './stores/captionStore'
-import { loadSettings } from './utils/settings'
 import { useGlobalKeybinds } from './hooks/useGlobalKeybinds'
 import { useProjectPersistence } from './hooks/useProjectPersistence'
 import { useVideoPipeline } from './hooks/useVideoPipeline'
@@ -16,50 +15,63 @@ import { ConfigScreen } from './components/ConfigScreen'
 import { SpeakerPanel } from './components/SpeakerPanel'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ToastStack } from './components/ToastStack'
-import { ProjectsPanel } from './components/ProjectsPanel'
-import styles from './App.module.css'
 
 export function App() {
   const state = useCaptionStore((s) => s.state)
   const reset = useCaptionStore((s) => s.reset)
+  const isReTranscribing = useCaptionStore((s) => s.isReTranscribing)
+  const setReTranscribing = useCaptionStore((s) => s.setReTranscribing)
+  const setState = useCaptionStore((s) => s.setState)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const { handleVideoFile, handleStartTranscription, continueProjectWithFile } = useVideoPipeline()
+  const {
+    handleVideoFile, handleStartTranscription, continueProjectWithFile, handleReTranscribe,
+  } = useVideoPipeline()
 
   useGlobalKeybinds()
   useProjectPersistence()
-
-  // Apply the user's saved default caption style on first render.
-  useEffect(() => {
-    useCaptionStore.getState().setCaptionStyle(loadSettings().defaultCaptionStyle)
-  }, [])
 
   const isBusy = state === 'uploading' || state === 'transcribing'
   const isEditing = state === 'editing' || state === 'rendering'
 
   return (
-    <div className={styles.app}>
+    <div className="min-h-screen">
       <AppHeader onNewVideo={reset} onOpenSettings={() => setSettingsOpen(true)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ErrorBanner />
 
       <main>
-        {state === 'idle' && <LandingHero onFile={handleVideoFile} />}
+        {state === 'idle' && (
+          <LandingHero
+            onFile={handleVideoFile}
+            onContinueProject={continueProjectWithFile}
+          />
+        )}
 
         {state === 'configuring' && (
-          <ConfigScreen onStart={handleStartTranscription} onCancel={reset} />
+          <ConfigScreen
+            onStart={handleStartTranscription}
+            onCancel={() => {
+              if (isReTranscribing) {
+                setReTranscribing(false)
+                setState('editing')
+              } else {
+                reset()
+              }
+            }}
+          />
         )}
 
         {isBusy && <BusyView />}
 
         {isEditing && (
-          <div className={styles.editor}>
-            <div className={styles.editorLeft}>
+          <div className="grid gap-7 px-10 py-7 mx-auto items-start max-w-[1680px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_460px]">
+            <div className="flex flex-col gap-3">
               <VideoPlayer />
               <CaptionTimeline />
-              <Toolbar />
+              <Toolbar onReTranscribe={handleReTranscribe} />
             </div>
-            <div className={styles.editorRight}>
+            <div className="lg:sticky lg:top-6">
               <SpeakerPanel />
               <CaptionEditor />
             </div>
@@ -67,7 +79,6 @@ export function App() {
         )}
       </main>
 
-      <ProjectsPanel onContinue={continueProjectWithFile} />
       <ToastStack />
     </div>
   )

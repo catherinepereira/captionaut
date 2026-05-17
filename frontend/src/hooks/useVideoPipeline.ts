@@ -41,6 +41,9 @@ export function useVideoPipeline() {
       speakerOutlineThickness: prior.speakerOutlineThickness ?? {},
       speakerFontFamilies: prior.speakerFontFamilies ?? {},
       speakerFontSizes: prior.speakerFontSizes ?? {},
+      speakerPosX: prior.speakerPosX ?? {},
+      speakerPosY: prior.speakerPosY ?? {},
+      speakerAlign: prior.speakerAlign ?? {},
       alignment: prior.alignment,
       captionStyle: prior.captionStyle,
     })
@@ -145,6 +148,7 @@ export function useVideoPipeline() {
         }
       }
 
+      useCaptionStore.getState().setReTranscribing(false)
       setState('editing')
     } catch (err) {
       progressStreamRef.current?.close()
@@ -153,5 +157,28 @@ export function useVideoPipeline() {
     }
   }
 
-  return { handleVideoFile, handleStartTranscription, continueProjectWithFile }
+  // Re-transcribe an in-progress project. Confirms before clobbering edits,
+  // then routes through the existing ConfigScreen → transcribe pipeline.
+  const handleReTranscribe = () => {
+    const store = useCaptionStore.getState()
+    if (!store.jobId) return
+
+    const hasEdits =
+      store.captions.length > 0 ||
+      store.speakers.length > 0 ||
+      store.history.length > 0
+    if (hasEdits) {
+      const confirmed = window.confirm(
+        'Re-transcribing will replace your current captions, speakers, and edits. Continue?',
+      )
+      if (!confirmed) return
+    }
+
+    store.setReTranscribing(true)
+    store.setAlignment([])
+    setTranscribeProgress(0)
+    setState('configuring')
+  }
+
+  return { handleVideoFile, handleStartTranscription, continueProjectWithFile, handleReTranscribe }
 }

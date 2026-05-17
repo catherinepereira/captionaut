@@ -11,6 +11,9 @@ export interface Caption {
   outline_thickness?: number | null
   font_family?: string | null
   font_size?: number | null
+  pos_x_override?: number | null
+  pos_y_override?: number | null
+  align_override?: 'left' | 'center' | 'right' | null
 }
 
 export type CaptionPatch = Partial<Omit<Caption, 'id'>>
@@ -118,6 +121,9 @@ interface CaptionStore {
   speakerOutlineThickness: Record<string, number>
   speakerFontFamilies: Record<string, string>
   speakerFontSizes: Record<string, number>
+  speakerPosX: Record<string, number>
+  speakerPosY: Record<string, number>
+  speakerAlign: Record<string, HorizontalAlign>
   currentTime: number
   videoDuration: number
   seekRequest: number | null
@@ -125,7 +131,9 @@ interface CaptionStore {
   error: string | null
   transcribeProgress: number
   transcribeConfig: TranscribeConfig
+  isReTranscribing: boolean
   captionStyle: CaptionStyle
+  thumbnail: string | null
   toasts: Toast[]
 
   setVideoFile: (file: File) => void
@@ -140,8 +148,12 @@ interface CaptionStore {
   setSpeakerOutlineThickness: (label: string, value: number) => void
   setSpeakerFontFamily: (label: string, family: string) => void
   setSpeakerFontSize: (label: string, size: number) => void
+  setSpeakerPosX: (label: string, value: number) => void
+  setSpeakerPosY: (label: string, value: number) => void
+  setSpeakerAlign: (label: string, value: HorizontalAlign) => void
   addSpeaker: (label: string) => void
   renameSpeaker: (oldLabel: string, newLabel: string) => void
+  removeSpeaker: (label: string, reassignTo?: string | null) => void
   loadSavedSession: (data: {
     captions: Caption[]
     speakers: string[]
@@ -150,8 +162,12 @@ interface CaptionStore {
     speakerOutlineThickness: Record<string, number>
     speakerFontFamilies: Record<string, string>
     speakerFontSizes: Record<string, number>
+    speakerPosX?: Record<string, number>
+    speakerPosY?: Record<string, number>
+    speakerAlign?: Record<string, HorizontalAlign>
     alignment: AlignmentResult[]
     captionStyle: CaptionStyle
+    thumbnail?: string | null
   }) => void
   setCurrentTime: (t: number) => void
   setVideoDuration: (d: number) => void
@@ -162,6 +178,8 @@ interface CaptionStore {
   setTranscribeConfig: (patch: Partial<TranscribeConfig>) => void
   setDiarizationConfig: (patch: Partial<DiarizationConfig>) => void
   setCaptionStyle: (patch: Partial<CaptionStyle>) => void
+  setReTranscribing: (v: boolean) => void
+  setThumbnail: (dataUrl: string | null) => void
   replaceCaptions: (next: Caption[]) => void  // history-aware mutator for bulk ops
   undo: () => void
   redo: () => void
@@ -196,6 +214,9 @@ function patchDiffers(prev: Caption, patch: CaptionPatch): boolean {
   if ('outline_thickness' in patch && patch.outline_thickness !== prev.outline_thickness) return true
   if ('font_family' in patch && patch.font_family !== prev.font_family) return true
   if ('font_size' in patch && patch.font_size !== prev.font_size) return true
+  if ('pos_x_override' in patch && patch.pos_x_override !== prev.pos_x_override) return true
+  if ('pos_y_override' in patch && patch.pos_y_override !== prev.pos_y_override) return true
+  if ('align_override' in patch && patch.align_override !== prev.align_override) return true
   return false
 }
 
@@ -214,6 +235,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   speakerOutlineThickness: {},
   speakerFontFamilies: {},
   speakerFontSizes: {},
+  speakerPosX: {},
+  speakerPosY: {},
+  speakerAlign: {},
   currentTime: 0,
   videoDuration: 0,
   seekRequest: null,
@@ -221,7 +245,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   error: null,
   transcribeProgress: 0,
   transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
+  isReTranscribing: false,
   captionStyle: DEFAULT_CAPTION_STYLE,
+  thumbnail: null,
   toasts: [],
 
   setVideoFile: (file) => set((store) => {
@@ -276,6 +302,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     speakerOutlineThickness: {},
     speakerFontFamilies: {},
     speakerFontSizes: {},
+    speakerPosX: {},
+    speakerPosY: {},
+    speakerAlign: {},
   }),
   setSpeakerColor: (label, color) =>
     set((store) => ({ speakerColors: { ...store.speakerColors, [label]: color } })),
@@ -295,6 +324,12 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     set((store) => ({
       speakerFontSizes: { ...store.speakerFontSizes, [label]: size },
     })),
+  setSpeakerPosX: (label, value) =>
+    set((store) => ({ speakerPosX: { ...store.speakerPosX, [label]: value } })),
+  setSpeakerPosY: (label, value) =>
+    set((store) => ({ speakerPosY: { ...store.speakerPosY, [label]: value } })),
+  setSpeakerAlign: (label, value) =>
+    set((store) => ({ speakerAlign: { ...store.speakerAlign, [label]: value } })),
   addSpeaker: (label) => set((store) => {
     const trimmed = label.trim()
     if (!trimmed || store.speakers.includes(trimmed)) return store
@@ -330,6 +365,9 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     const speakerOutlineThickness = migrate(store.speakerOutlineThickness)
     const speakerFontFamilies = migrate(store.speakerFontFamilies)
     const speakerFontSizes = migrate(store.speakerFontSizes)
+    const speakerPosX = migrate(store.speakerPosX)
+    const speakerPosY = migrate(store.speakerPosY)
+    const speakerAlign = migrate(store.speakerAlign)
 
     // Rewrite every caption that references the old label, history-aware.
     let anyCaptionChanged = false
@@ -350,6 +388,52 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       speakerOutlineThickness,
       speakerFontFamilies,
       speakerFontSizes,
+      speakerPosX,
+      speakerPosY,
+      speakerAlign,
+      captions,
+      history,
+      future,
+    }
+  }),
+  removeSpeaker: (label, reassignTo = null) => set((store) => {
+    if (!store.speakers.includes(label)) return store
+    // Reassign target must be a current speaker (or null to unassign).
+    const target =
+      reassignTo && store.speakers.includes(reassignTo) && reassignTo !== label
+        ? reassignTo
+        : null
+
+    const speakers = store.speakers.filter((s) => s !== label)
+
+    const drop = <T,>(map: Record<string, T>): Record<string, T> => {
+      if (!(label in map)) return map
+      const next = { ...map }
+      delete next[label]
+      return next
+    }
+
+    let anyCaptionChanged = false
+    const captions = store.captions.map((c) => {
+      if (c.speaker !== label) return c
+      anyCaptionChanged = true
+      return { ...c, speaker: target }
+    })
+    const history = anyCaptionChanged
+      ? [...store.history, store.captions].slice(-HISTORY_LIMIT)
+      : store.history
+    const future = anyCaptionChanged ? [] : store.future
+
+    return {
+      speakers,
+      speakerColors: drop(store.speakerColors),
+      speakerOutlineColors: drop(store.speakerOutlineColors),
+      speakerOutlineThickness: drop(store.speakerOutlineThickness),
+      speakerFontFamilies: drop(store.speakerFontFamilies),
+      speakerFontSizes: drop(store.speakerFontSizes),
+      speakerPosX: drop(store.speakerPosX),
+      speakerPosY: drop(store.speakerPosY),
+      speakerAlign: drop(store.speakerAlign),
       captions,
       history,
       future,
@@ -371,6 +455,8 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       },
     })),
   setCaptionStyle: (patch) => set((store) => ({ captionStyle: { ...store.captionStyle, ...patch } })),
+  setReTranscribing: (v) => set({ isReTranscribing: v }),
+  setThumbnail: (dataUrl) => set({ thumbnail: dataUrl }),
   loadSavedSession: (data) => set({
     captions: data.captions,
     speakers: data.speakers,
@@ -379,8 +465,12 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     speakerOutlineThickness: data.speakerOutlineThickness,
     speakerFontFamilies: data.speakerFontFamilies,
     speakerFontSizes: data.speakerFontSizes,
+    speakerPosX: data.speakerPosX ?? {},
+    speakerPosY: data.speakerPosY ?? {},
+    speakerAlign: data.speakerAlign ?? {},
     alignment: data.alignment,
     captionStyle: data.captionStyle,
+    thumbnail: data.thumbnail ?? null,
     history: [],
     future: [],
   }),
@@ -397,8 +487,11 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       captions: [], history: [], future: [],
       alignment: [], speakers: [], speakerColors: {}, speakerOutlineColors: {},
       speakerOutlineThickness: {}, speakerFontFamilies: {}, speakerFontSizes: {},
+      speakerPosX: {}, speakerPosY: {}, speakerAlign: {},
       currentTime: 0, videoDuration: 0, seekRequest: null, scrollToCaptionRequest: null, error: null,
       transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
+      isReTranscribing: false,
+      thumbnail: null,
     }
   }),
 }))

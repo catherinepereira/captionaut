@@ -1,5 +1,5 @@
 import type {
-  Caption, CaptionStyle, AlignmentResult,
+  Caption, CaptionStyle, AlignmentResult, HorizontalAlign,
 } from '../stores/captionStore'
 
 export const CAPTIONAUT_FORMAT = 'captionaut'
@@ -17,6 +17,9 @@ export interface CaptionautFile {
   speakerOutlineThickness: Record<string, number>
   speakerFontFamilies: Record<string, string>
   speakerFontSizes: Record<string, number>
+  speakerPosX: Record<string, number>
+  speakerPosY: Record<string, number>
+  speakerAlign: Record<string, HorizontalAlign>
   captionStyle: CaptionStyle
   alignment: AlignmentResult[]
 }
@@ -29,6 +32,9 @@ export interface CaptionautImport {
   speakerOutlineThickness: Record<string, number>
   speakerFontFamilies: Record<string, string>
   speakerFontSizes: Record<string, number>
+  speakerPosX: Record<string, number>
+  speakerPosY: Record<string, number>
+  speakerAlign: Record<string, HorizontalAlign>
   captionStyle: CaptionStyle
   alignment: AlignmentResult[]
 }
@@ -46,6 +52,9 @@ export function buildCaptionautFile(input: Omit<CaptionautImport, never> & { sou
     speakerOutlineThickness: input.speakerOutlineThickness,
     speakerFontFamilies: input.speakerFontFamilies,
     speakerFontSizes: input.speakerFontSizes,
+    speakerPosX: input.speakerPosX,
+    speakerPosY: input.speakerPosY,
+    speakerAlign: input.speakerAlign,
     captionStyle: input.captionStyle,
     alignment: input.alignment,
   }
@@ -76,6 +85,9 @@ export function parseCaptionautFile(raw: string): CaptionautImport {
     speakerOutlineThickness: rec<number>(parsed.speakerOutlineThickness),
     speakerFontFamilies: rec<string>(parsed.speakerFontFamilies),
     speakerFontSizes: rec<number>(parsed.speakerFontSizes),
+    speakerPosX: rec<number>(parsed.speakerPosX),
+    speakerPosY: rec<number>(parsed.speakerPosY),
+    speakerAlign: rec<HorizontalAlign>(parsed.speakerAlign),
     captionStyle: parsed.captionStyle as CaptionStyle,
     alignment: arr<AlignmentResult>(parsed.alignment),
   }

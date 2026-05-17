@@ -7,7 +7,6 @@ import {
 } from '../utils/captions'
 import { StyleEditorPopover, type StyleValues } from './StyleEditorPopover'
 import { PaletteIcon } from './icons'
-import styles from './CaptionEditor.module.css'
 
 const SCRIPT_EXT_RE = /\.(txt|srt)$/i
 
@@ -36,6 +35,9 @@ interface RowProps {
   speakerOutlineThickness: number | null
   speakerFontFamily: string | null
   speakerFontSize: number | null
+  speakerPosX: number | null
+  speakerPosY: number | null
+  speakerAlign: 'left' | 'center' | 'right' | null
   effectiveTextColor: string | null
   speakers: string[]
   captionStyle: CaptionStyle
@@ -46,9 +48,13 @@ interface RowProps {
   registerRef: (id: number, el: HTMLDivElement | null) => void
 }
 
+const iconBtn =
+  'inline-flex items-center justify-center w-[26px] h-[26px] bg-transparent border border-border text-text-muted rounded-md cursor-pointer p-0 hover:border-accent-light hover:text-accent-light focus-visible:border-accent-light focus-visible:text-accent-light'
+
 const CaptionRow = memo(function CaptionRow({
   caption, isActive, isMismatched, isSelected, speakerColor, speakerOutlineColor,
   speakerOutlineThickness, speakerFontFamily, speakerFontSize,
+  speakerPosX, speakerPosY, speakerAlign,
   effectiveTextColor,
   speakers, captionStyle, autoEditText,
   onSeek, onToggleSelect, onAutoEditConsumed, registerRef,
@@ -85,13 +91,15 @@ const CaptionRow = memo(function CaptionRow({
     setEditingField(null)
   }
 
-  const rowClass = [
-    styles.row,
-    isActive ? styles.active : '',
-    isMismatched ? styles.mismatch : '',
-    isSelected ? styles.selected : '',
-  ].join(' ')
-
+  const rowBaseClass = 'relative px-[18px] py-3 border-b border-border cursor-text transition-colors hover:bg-input focus-visible:bg-input focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2'
+  const rowStateClass =
+    isActive
+      ? 'bg-[#1e1a40] border-l-[3px] border-l-accent'
+      : isMismatched
+        ? 'border-l-[3px] border-l-red'
+        : isSelected
+          ? 'bg-[rgba(107,140,179,0.08)]'
+          : ''
   const rowStyle =
     speakerColor && !isActive && !isMismatched
       ? { borderLeft: `3px solid ${speakerColor}` }
@@ -105,10 +113,12 @@ const CaptionRow = memo(function CaptionRow({
     }
   }
 
+  const timeClass = 'text-[11px] font-mono text-text-muted px-1.5 py-0.5 bg-bg rounded cursor-pointer hover:text-accent-light focus-visible:text-accent-light focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2'
+
   return (
     <div
       ref={(el) => registerRef(caption.id, el)}
-      className={rowClass}
+      className={`${rowBaseClass} ${rowStateClass}`}
       style={rowStyle}
       role="button"
       tabIndex={0}
@@ -116,21 +126,91 @@ const CaptionRow = memo(function CaptionRow({
       aria-current={isActive ? 'true' : undefined}
       onClick={() => editingField === null && onSeek(caption.start)}
       onKeyDown={onKey}
-      title="Click to jump to this caption · checkbox to select for bulk ops"
+      title="Click to jump to this caption · use the select button for bulk ops"
     >
-      <input
-        type="checkbox"
-        className={styles.checkbox}
-        checked={isSelected}
-        aria-label={`Select caption ${caption.id + 1}`}
-        onClick={(e) => { e.stopPropagation(); onToggleSelect(caption.id, e) }}
-        onChange={() => { /* handled in onClick to access shiftKey */ }}
-      />
-      <div className={styles.metaRow} onClick={(e) => e.stopPropagation()}>
+      <div className="absolute top-3 right-3.5 flex gap-1.5 items-center" onClick={(e) => e.stopPropagation()}>
+        <div className="relative">
+          <button
+            type="button"
+            className={iconBtn}
+            aria-label="Edit caption style"
+            title="Edit style"
+            onClick={(e) => { e.stopPropagation(); setStyleOpen((v) => !v) }}
+          >
+            <PaletteIcon />
+          </button>
+
+          {styleOpen && (
+            <StyleEditorPopover
+              variant="caption"
+              values={{
+                color: caption.color_override ?? null,
+                outlineColor: caption.outline_override ?? null,
+                outlineThickness: caption.outline_thickness ?? null,
+                fontFamily: caption.font_family ?? null,
+                fontSize: caption.font_size ?? null,
+                posX: caption.pos_x_override ?? null,
+                posY: caption.pos_y_override ?? null,
+                align: caption.align_override ?? null,
+              }}
+              defaults={{
+                color: speakerColor ?? captionStyle.color,
+                outlineColor: speakerOutlineColor ?? captionStyle.outlineColor,
+                outlineThickness: speakerOutlineThickness ?? captionStyle.outlineThickness,
+                fontFamily: speakerFontFamily ?? captionStyle.fontFamily,
+                fontSize: speakerFontSize ?? captionStyle.fontSize,
+                posX: speakerPosX ?? captionStyle.posX,
+                posY: speakerPosY ?? captionStyle.posY,
+                align: speakerAlign ?? captionStyle.align,
+              }}
+              onChange={(patch: Partial<StyleValues>) => {
+                const next: Parameters<typeof updateCaption>[1] = {}
+                if ('color' in patch) next.color_override = patch.color
+                if ('outlineColor' in patch) next.outline_override = patch.outlineColor
+                if ('outlineThickness' in patch) next.outline_thickness = patch.outlineThickness
+                if ('fontFamily' in patch) next.font_family = patch.fontFamily
+                if ('fontSize' in patch) next.font_size = patch.fontSize
+                if ('posX' in patch) next.pos_x_override = patch.posX
+                if ('posY' in patch) next.pos_y_override = patch.posY
+                if ('align' in patch) next.align_override = patch.align
+                updateCaption(caption.id, next)
+              }}
+              onClear={() => {
+                updateCaption(caption.id, {
+                  color_override: null,
+                  outline_override: null,
+                  outline_thickness: null,
+                  font_family: null,
+                  font_size: null,
+                  pos_x_override: null,
+                  pos_y_override: null,
+                  align_override: null,
+                })
+                setStyleOpen(false)
+              }}
+              onClose={() => setStyleOpen(false)}
+            />
+          )}
+        </div>
+        <button
+          type="button"
+          aria-pressed={isSelected}
+          title={isSelected ? 'Deselect' : 'Select'}
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(caption.id, e) }}
+          className={`inline-flex items-center justify-center h-[26px] px-2.5 border rounded-md text-[11px] font-medium transition-colors ${
+            isSelected
+              ? 'bg-accent border-accent text-white hover:bg-accent-light hover:border-accent-light'
+              : 'bg-transparent border-border text-text-muted hover:border-accent-light hover:text-accent-light'
+          }`}
+        >
+          {isSelected ? 'Selected' : 'Select'}
+        </button>
+      </div>
+      <div className="flex items-center gap-1.5 mb-1.5 relative" onClick={(e) => e.stopPropagation()}>
         <select
-          className={styles.speakerSelect}
           value={caption.speaker ?? ''}
           aria-label="Speaker"
+          className="bg-bg border border-border rounded text-[11px] font-mono text-text-muted px-1.5 py-0.5 cursor-pointer max-w-[140px] hover:border-accent-light"
           style={caption.speaker && speakerColor ? { color: speakerColor } : undefined}
           onChange={(e) => {
             const v = e.target.value
@@ -145,74 +225,22 @@ const CaptionRow = memo(function CaptionRow({
         </select>
       </div>
 
-      <div className={styles.styleSlot} onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          className={styles.paletteBtn}
-          aria-label="Edit caption style"
-          title="Edit style"
-          onClick={(e) => { e.stopPropagation(); setStyleOpen((v) => !v) }}
-        >
-          <PaletteIcon />
-        </button>
-
-        {styleOpen && (
-          <StyleEditorPopover
-            variant="caption"
-            values={{
-              color: caption.color_override ?? null,
-              outlineColor: caption.outline_override ?? null,
-              outlineThickness: caption.outline_thickness ?? null,
-              fontFamily: caption.font_family ?? null,
-              fontSize: caption.font_size ?? null,
-            }}
-            defaults={{
-              color: speakerColor ?? captionStyle.color,
-              outlineColor: speakerOutlineColor ?? captionStyle.outlineColor,
-              outlineThickness: speakerOutlineThickness ?? captionStyle.outlineThickness,
-              fontFamily: speakerFontFamily ?? captionStyle.fontFamily,
-              fontSize: speakerFontSize ?? captionStyle.fontSize,
-            }}
-            onChange={(patch: Partial<StyleValues>) => {
-              const next: Parameters<typeof updateCaption>[1] = {}
-              if ('color' in patch) next.color_override = patch.color
-              if ('outlineColor' in patch) next.outline_override = patch.outlineColor
-              if ('outlineThickness' in patch) next.outline_thickness = patch.outlineThickness
-              if ('fontFamily' in patch) next.font_family = patch.fontFamily
-              if ('fontSize' in patch) next.font_size = patch.fontSize
-              updateCaption(caption.id, next)
-            }}
-            onClear={() => {
-              updateCaption(caption.id, {
-                color_override: null,
-                outline_override: null,
-                outline_thickness: null,
-                font_family: null,
-                font_size: null,
-              })
-              setStyleOpen(false)
-            }}
-            onClose={() => setStyleOpen(false)}
-          />
-        )}
-      </div>
-
-      <div className={styles.times}>
+      <div className="flex items-center gap-1.5 mb-1.5">
         {editingField === 'start' ? (
           <input
-            className={styles.timeInput}
             value={draft}
             autoFocus
             aria-label="Start time"
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => e.key === 'Enter' && commit()}
+            className="text-[11px] font-mono text-text-primary bg-bg border border-accent rounded px-1.5 py-0.5 w-[72px] outline-none"
           />
         ) : (
           <span
-            className={styles.time}
             role="button"
             tabIndex={0}
+            className={timeClass}
             aria-label={`Edit start time, currently ${formatTime(caption.start)}`}
             onClick={(e) => startEdit('start', e)}
             onKeyDown={(e) => {
@@ -222,22 +250,22 @@ const CaptionRow = memo(function CaptionRow({
             {formatTime(caption.start)}
           </span>
         )}
-        <span className={styles.arrow} aria-hidden="true">→</span>
+        <span className="text-[11px] text-text-dim" aria-hidden="true">→</span>
         {editingField === 'end' ? (
           <input
-            className={styles.timeInput}
             value={draft}
             autoFocus
             aria-label="End time"
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => e.key === 'Enter' && commit()}
+            className="text-[11px] font-mono text-text-primary bg-bg border border-accent rounded px-1.5 py-0.5 w-[72px] outline-none"
           />
         ) : (
           <span
-            className={styles.time}
             role="button"
             tabIndex={0}
+            className={timeClass}
             aria-label={`Edit end time, currently ${formatTime(caption.end)}`}
             onClick={(e) => startEdit('end', e)}
             onKeyDown={(e) => {
@@ -251,7 +279,6 @@ const CaptionRow = memo(function CaptionRow({
 
       {editingField === 'text' ? (
         <textarea
-          className={styles.textArea}
           value={draft}
           autoFocus
           rows={2}
@@ -259,10 +286,10 @@ const CaptionRow = memo(function CaptionRow({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit() } }}
+          className="w-full text-sm text-text-primary bg-bg border border-accent rounded-md px-2 py-1.5 resize-y outline-none leading-snug"
         />
       ) : (
         <p
-          className={styles.text}
           role="button"
           tabIndex={0}
           aria-label={`Edit caption text: ${caption.text}`}
@@ -271,12 +298,17 @@ const CaptionRow = memo(function CaptionRow({
           onKeyDown={(e) => {
             if (e.key === 'Enter') { e.stopPropagation(); startEdit('text', e as unknown as React.MouseEvent) }
           }}
+          className="text-sm text-text-primary leading-snug cursor-text hover:text-accent-light focus-visible:text-accent-light focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 focus-visible:rounded"
         >
           {caption.text}
         </p>
       )}
 
-      {isMismatched && <span className={styles.badge}>mismatch</span>}
+      {isMismatched && (
+        <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wide text-red bg-red/10 border border-red/30 rounded px-1.5 py-0.5">
+          mismatch
+        </span>
+      )}
     </div>
   )
 })
@@ -292,6 +324,9 @@ export function CaptionEditor() {
   const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
   const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
   const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
+  const speakerPosX = useCaptionStore((s) => s.speakerPosX)
+  const speakerPosY = useCaptionStore((s) => s.speakerPosY)
+  const speakerAlign = useCaptionStore((s) => s.speakerAlign)
   const captionStyle = useCaptionStore((s) => s.captionStyle)
   const requestSeek = useCaptionStore((s) => s.requestSeek)
   const undo = useCaptionStore((s) => s.undo)
@@ -305,12 +340,13 @@ export function CaptionEditor() {
   const lastSelectedRef = useRef<number | null>(null)
   const [autoEditId, setAutoEditId] = useState<number | null>(null)
   const [bulkSpeakerOpen, setBulkSpeakerOpen] = useState(false)
+  const bulkSpeakerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!bulkSpeakerOpen) return
     const onDoc = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      if (!target.closest(`.${styles.bulkSpeaker}`)) setBulkSpeakerOpen(false)
+      if (!bulkSpeakerRef.current?.contains(target)) setBulkSpeakerOpen(false)
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
@@ -337,7 +373,6 @@ export function CaptionEditor() {
     }
   }
 
-  // Stable identity so memo(CaptionRow) doesn't re-render on every parent render.
   const registerRef = useCallback((id: number, el: HTMLDivElement | null) => {
     if (el) rowRefs.current.set(id, el)
     else rowRefs.current.delete(id)
@@ -358,7 +393,6 @@ export function CaptionEditor() {
     rowRefs.current.get(activeId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [activeId])
 
-  // External requests (e.g. clicking a timeline block) scroll the row in too.
   const scrollToCaptionRequest = useCaptionStore((s) => s.scrollToCaptionRequest)
   const requestScrollToCaption = useCaptionStore((s) => s.requestScrollToCaption)
   useEffect(() => {
@@ -370,8 +404,6 @@ export function CaptionEditor() {
     requestScrollToCaption(null)
   }, [scrollToCaptionRequest, requestScrollToCaption])
 
-  // Selection survives caption edits but is dropped when the entire captions
-  // array is replaced (transcribe / reset / undo to pre-edit state).
   useEffect(() => {
     if (selected.size === 0) return
     setSelected((s) => {
@@ -442,7 +474,6 @@ export function CaptionEditor() {
     })
     replaceCaptions(result.captions)
     setAutoEditId(result.newId)
-    // Scroll the new row into view on the next frame so it's visible to edit.
     requestAnimationFrame(() => {
       rowRefs.current.get(result.newId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
@@ -455,9 +486,17 @@ export function CaptionEditor() {
     return !!c && currentTime > c.start && currentTime < c.end
   })()
 
+  const allSelected = selected.size === captions.length && captions.length > 0
+  const headerBtn =
+    'bg-transparent border border-border text-text-muted text-sm w-[26px] h-[26px] rounded-md cursor-pointer ml-1 leading-none hover:enabled:border-accent-light hover:enabled:text-accent-light disabled:opacity-[0.35] disabled:cursor-not-allowed'
+  const headerTextBtn =
+    'bg-transparent border border-border text-text-muted text-xs h-[26px] px-2 rounded-md cursor-pointer mr-1.5 leading-none hover:enabled:border-accent-light hover:enabled:text-accent-light disabled:opacity-[0.35] disabled:cursor-not-allowed'
+  const bulkBtn =
+    'bg-transparent border border-border text-text-primary text-[11px] font-medium px-2 py-1 rounded-sm cursor-pointer hover:enabled:border-accent-light hover:enabled:text-accent-light disabled:opacity-[0.35] disabled:cursor-not-allowed'
+
   return (
     <div
-      className={`${styles.editor} ${dragOver ? styles.dropTarget : ''}`}
+      className={`bg-card border ${dragOver ? 'border-accent' : 'border-border'} rounded-md overflow-hidden flex flex-col relative max-h-[calc(100vh-480px)]`}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('Files')) {
           e.preventDefault()
@@ -473,28 +512,39 @@ export function CaptionEditor() {
       }}
     >
       {dragOver && (
-        <div className={styles.dropOverlay}>Drop a .txt or .srt to align it with these captions</div>
+        <div className="absolute inset-0 bg-accent/20 flex items-center justify-center text-text-primary text-sm font-semibold z-10 pointer-events-none rounded-md">
+          Drop a .txt or .srt to align it with these captions
+        </div>
       )}
-      <div className={styles.header}>
-        <span className={styles.title}>Captions</span>
-        <span className={styles.count}>{captions.length} segments</span>
-        <div className={styles.headerSpacer} />
+      <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-border">
+        <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent-light">Captions</span>
+        <span className="text-xs text-text-dim">{captions.length} segments</span>
+        <div className="flex-1" />
         <button
-          className={styles.addBtn}
+          className={headerTextBtn}
+          onClick={() => allSelected ? clearSelection() : setSelected(new Set(captions.map((c) => c.id)))}
+          disabled={captions.length === 0}
+          title={allSelected ? 'Deselect all' : 'Select all'}
+          aria-label={allSelected ? 'Deselect all' : 'Select all'}
+        >
+          {allSelected ? 'Deselect all' : 'Select all'}
+        </button>
+        <button
+          className="bg-accent border border-accent text-white text-xs font-semibold h-[26px] px-3 rounded-md cursor-pointer mr-1.5 leading-none hover:bg-accent-light hover:border-accent-light"
           onClick={addAtPlayhead}
           title="Add a new caption at the current playhead"
         >
           + Add
         </button>
         <button
-          className={styles.historyBtn}
+          className={headerBtn}
           onClick={undo}
           disabled={historyDepth === 0}
           title="Undo (Ctrl/⌘+Z)"
           aria-label="Undo"
         ><span aria-hidden="true">↶</span></button>
         <button
-          className={styles.historyBtn}
+          className={headerBtn}
           onClick={redo}
           disabled={futureDepth === 0}
           title="Redo (Ctrl/⌘+Shift+Z)"
@@ -503,25 +553,28 @@ export function CaptionEditor() {
       </div>
 
       {hasSelection && (
-        <div className={styles.bulkBar}>
-          <span className={styles.bulkCount}>{selected.size} selected</span>
-          <div className={styles.bulkSpacer} />
-          <button className={styles.bulkBtn} onClick={() => shiftBy(-0.1)} title="Shift -100ms">−100ms</button>
-          <button className={styles.bulkBtn} onClick={() => shiftBy(+0.1)} title="Shift +100ms">+100ms</button>
-          <button className={styles.bulkBtn} onClick={mergeNow} disabled={selected.size < 2} title="Merge selected into one caption">Merge</button>
-          <button className={styles.bulkBtn} onClick={splitAtPlayhead} disabled={!canSplit} title="Split selected caption at the playhead">Split</button>
-          <div className={styles.bulkSpeaker}>
+        <div className="flex items-center gap-1.5 px-3.5 py-2 bg-input border-b border-border">
+          <span className="text-xs font-semibold text-accent-light">{selected.size} selected</span>
+          <div className="flex-1" />
+          <button className={bulkBtn} onClick={() => shiftBy(-0.1)} title="Shift -100ms">−100ms</button>
+          <button className={bulkBtn} onClick={() => shiftBy(+0.1)} title="Shift +100ms">+100ms</button>
+          <button className={bulkBtn} onClick={mergeNow} disabled={selected.size < 2} title="Merge selected into one caption">Merge</button>
+          <button className={bulkBtn} onClick={splitAtPlayhead} disabled={!canSplit} title="Split selected caption at the playhead">Split</button>
+          <div ref={bulkSpeakerRef} className="relative">
             <button
-              className={styles.bulkBtn}
+              className={bulkBtn}
               onClick={() => setBulkSpeakerOpen((v) => !v)}
               title="Assign all selected captions to a speaker"
             >
               Speaker ▾
             </button>
             {bulkSpeakerOpen && (
-              <div className={styles.bulkSpeakerMenu} role="menu">
+              <div
+                role="menu"
+                className="absolute top-[calc(100%+4px)] right-0 bg-card border border-border rounded-md py-1 min-w-[160px] z-[5] shadow-[0_8px_20px_rgba(0,0,0,0.4)] flex flex-col"
+              >
                 <button
-                  className={styles.bulkSpeakerItem}
+                  className="bg-transparent border-0 text-left px-3 py-1.5 text-xs text-text-primary cursor-pointer font-mono hover:bg-input"
                   onClick={() => bulkAssignSpeaker(null)}
                 >
                   No speaker
@@ -529,7 +582,7 @@ export function CaptionEditor() {
                 {speakers.map((s) => (
                   <button
                     key={s}
-                    className={styles.bulkSpeakerItem}
+                    className="bg-transparent border-0 text-left px-3 py-1.5 text-xs cursor-pointer font-mono hover:bg-input"
                     style={{ color: speakerColors[s] ?? undefined }}
                     onClick={() => bulkAssignSpeaker(s)}
                   >
@@ -537,26 +590,32 @@ export function CaptionEditor() {
                   </button>
                 ))}
                 {speakers.length === 0 && (
-                  <span className={styles.bulkSpeakerEmpty}>
+                  <span className="px-3 py-2 text-[11px] text-text-dim">
                     Add a speaker first via the Speakers panel.
                   </span>
                 )}
               </div>
             )}
           </div>
-          <button className={`${styles.bulkBtn} ${styles.bulkDanger}`} onClick={deleteNow} title="Delete selected">Delete</button>
           <button
-            className={styles.bulkClose}
+            className={`${bulkBtn} text-red hover:enabled:border-red hover:enabled:text-red hover:enabled:bg-red/10`}
+            onClick={deleteNow}
+            title="Delete selected"
+          >
+            Delete
+          </button>
+          <button
             onClick={clearSelection}
             title="Clear selection"
             aria-label="Clear selection"
+            className="bg-transparent border-0 text-text-muted text-base w-5 h-5 cursor-pointer leading-none p-0 hover:text-text-primary"
           ><span aria-hidden="true">×</span></button>
         </div>
       )}
 
-      <div className={styles.list} role="list" aria-label="Captions">
+      <div className="overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm" role="list" aria-label="Captions">
         {captions.length === 0 && (
-          <p className={styles.emptyHint}>
+          <p className="px-[18px] py-8 text-[13px] text-text-dim text-center">
             No captions yet. Press <strong>+ Add</strong> to create one at the current playhead.
           </p>
         )}
@@ -567,6 +626,9 @@ export function CaptionEditor() {
           const speakerOutline = sp ? speakerOutlineThickness[sp] ?? null : null
           const speakerFontFamily = sp ? speakerFontFamilies[sp] ?? null : null
           const speakerFontSize = sp ? speakerFontSizes[sp] ?? null : null
+          const sPosX = sp ? speakerPosX[sp] ?? null : null
+          const sPosY = sp ? speakerPosY[sp] ?? null : null
+          const sAlign = sp ? speakerAlign[sp] ?? null : null
 
           const effectiveTextColor = cap.color_override ?? speakerColor
 
@@ -582,6 +644,9 @@ export function CaptionEditor() {
               speakerOutlineThickness={speakerOutline}
               speakerFontFamily={speakerFontFamily}
               speakerFontSize={speakerFontSize}
+              speakerPosX={sPosX}
+              speakerPosY={sPosY}
+              speakerAlign={sAlign}
               effectiveTextColor={effectiveTextColor}
               speakers={speakers}
               captionStyle={captionStyle}

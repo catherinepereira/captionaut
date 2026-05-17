@@ -14,8 +14,12 @@ export function useProjectPersistence(): void {
   const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
   const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
   const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
+  const speakerPosX = useCaptionStore((s) => s.speakerPosX)
+  const speakerPosY = useCaptionStore((s) => s.speakerPosY)
+  const speakerAlign = useCaptionStore((s) => s.speakerAlign)
   const alignment = useCaptionStore((s) => s.alignment)
   const captionStyle = useCaptionStore((s) => s.captionStyle)
+  const thumbnail = useCaptionStore((s) => s.thumbnail)
 
   useEffect(() => {
     if (!jobId || captions.length === 0 || !videoFile) return
@@ -31,13 +35,18 @@ export function useProjectPersistence(): void {
       speakerOutlineThickness,
       speakerFontFamilies,
       speakerFontSizes,
+      speakerPosX,
+      speakerPosY,
+      speakerAlign,
       alignment,
       captionStyle,
+      thumbnail: thumbnail ?? undefined,
     })
   }, [
     jobId, videoFile, captions, speakers,
     speakerColors, speakerOutlineColors, speakerOutlineThickness,
     speakerFontFamilies, speakerFontSizes,
-    alignment, captionStyle,
+    speakerPosX, speakerPosY, speakerAlign,
+    alignment, captionStyle, thumbnail,
   ])
 }

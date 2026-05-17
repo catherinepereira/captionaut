@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { checkModelStatus, streamProgress, type StreamHandle } from '../api'
-import styles from './ModelDownload.module.css'
 
 interface Props {
   onReady: () => void
@@ -40,9 +39,12 @@ export function ModelDownload({ onReady }: Props) {
 
   if (checking) {
     return (
-      <div className={styles.screen}>
-        <div className={styles.spinner} />
-        <p className={styles.label}>Checking setup…</p>
+      <div className="flex items-center justify-center min-h-screen bg-bg flex-col">
+        <div
+          className="w-8 h-8 rounded-full border-[3px] border-border border-t-accent"
+          style={{ animation: 'spin 0.8s linear infinite' }}
+        />
+        <p className="mt-4 text-sm text-text-muted">Checking setup…</p>
       </div>
     )
   }
@@ -50,30 +52,38 @@ export function ModelDownload({ onReady }: Props) {
   if (!needsDownload) return null
 
   return (
-    <div className={styles.screen}>
-      <div className={styles.card}>
-        <h2 className={styles.title}>One-time setup</h2>
-        <p className={styles.desc}>
+    <div className="flex items-center justify-center min-h-screen bg-bg">
+      <div className="bg-card border border-border rounded-2xl px-14 py-12 max-w-[480px] w-full text-center">
+        <h2 className="text-2xl font-bold text-text-primary mb-4">One-time setup</h2>
+        <p className="text-sm text-text-muted leading-relaxed mb-8 [&_strong]:text-accent-light">
           Captionaut uses <strong>Whisper AI</strong> to transcribe your videos.
           The transcription model is about 145 MB and only needs to download once.
         </p>
 
-        {error && <p className={styles.error}>{error}</p>}
+        {error && (
+          <p className="text-[13px] text-red mb-4 p-2.5 bg-red/10 rounded-md">{error}</p>
+        )}
 
         {!downloading ? (
-          <button className={styles.btn} onClick={startDownload}>
+          <button
+            onClick={startDownload}
+            className="w-full bg-accent text-white text-[15px] font-semibold px-7 py-3 rounded-md hover:bg-accent-light transition-colors border-0"
+          >
             Download Whisper model
           </button>
         ) : (
-          <div className={styles.progressWrap}>
-            <div className={styles.progressBar}>
-              <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+          <div className="flex flex-col items-center gap-2.5">
+            <div className="w-full h-2 bg-border rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-accent rounded-sm transition-[width] duration-300 ease"
+                style={{ width: `${progress}%` }}
+              />
             </div>
-            <p className={styles.progressLabel}>{progress}%</p>
+            <p className="text-[13px] text-text-muted">{progress}%</p>
           </div>
         )}
 
-        <p className={styles.privacy}>
+        <p className="text-[11px] text-text-dim mt-6">
           You only need to do this once per environment.
         </p>
       </div>

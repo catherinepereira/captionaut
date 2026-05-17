@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
 import { findActiveCaption } from '../utils/captions'
-import styles from './VideoPlayer.module.css'
 
 // Multi-stop CSS text-shadow approximating an N-pixel ASS outline.
 function buildOutlineShadow(color: string, thickness: number): string | undefined {
@@ -32,8 +31,45 @@ export function VideoPlayer() {
   const speakerOutlineThickness = useCaptionStore((s) => s.speakerOutlineThickness)
   const speakerFontFamilies = useCaptionStore((s) => s.speakerFontFamilies)
   const speakerFontSizes = useCaptionStore((s) => s.speakerFontSizes)
+  const speakerPosX = useCaptionStore((s) => s.speakerPosX)
+  const speakerPosY = useCaptionStore((s) => s.speakerPosY)
+  const speakerAlign = useCaptionStore((s) => s.speakerAlign)
   const captionStyle = useCaptionStore((s) => s.captionStyle)
+  const thumbnail = useCaptionStore((s) => s.thumbnail)
+  const setThumbnail = useCaptionStore((s) => s.setThumbnail)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Capture a thumbnail once captions exist and the video has data.
+  // Uses whatever frame the playhead is currently on, so users can pause
+  // where they want before the first auto-save.
+  useEffect(() => {
+    if (thumbnail || captions.length === 0) return
+    const vid = videoRef.current
+    if (!vid) return
+
+    const capture = () => {
+      if (vid.readyState < 2) return
+      try {
+        const canvas = document.createElement('canvas')
+        const targetW = 320
+        const ratio = (vid.videoHeight || 1) / (vid.videoWidth || 1)
+        canvas.width = targetW
+        canvas.height = Math.round(targetW * ratio)
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.drawImage(vid, 0, 0, canvas.width, canvas.height)
+        setThumbnail(canvas.toDataURL('image/jpeg', 0.75))
+      } catch {
+        // CORS-tainted canvases or no decode yet; silent fail, retry later.
+      }
+    }
+
+    if (vid.readyState >= 2) capture()
+    else {
+      vid.addEventListener('loadeddata', capture, { once: true })
+      return () => vid.removeEventListener('loadeddata', capture)
+    }
+  }, [thumbnail, captions.length, setThumbnail])
 
   useEffect(() => {
     const vid = videoRef.current
@@ -118,13 +154,25 @@ export function VideoPlayer() {
     (activeCaption?.font_size ?? speakerFontSize ?? captionStyle.fontSize) * 0.5,
   )
 
-  // Map (posX, posY, align) to CSS placement that matches the ASS \pos +
-  // bottom-row alignment semantics: (x,y) is the bottom of the text bbox;
-  // align picks which horizontal edge of the bbox sits at x.
-  const align = captionStyle.align
+  // Resolve effective position + alignment with hierarchy: global < speaker < caption.
+  const posX =
+    activeCaption?.pos_x_override
+    ?? (sp ? speakerPosX[sp] : undefined)
+    ?? captionStyle.posX
+  const posY =
+    activeCaption?.pos_y_override
+    ?? (sp ? speakerPosY[sp] : undefined)
+    ?? captionStyle.posY
+  const align =
+    activeCaption?.align_override
+    ?? (sp ? speakerAlign[sp] : undefined)
+    ?? captionStyle.align
+
+  // Match the ASS \pos + bottom-row alignment semantics: (x,y) is the bottom
+  // of the text bbox; align picks which horizontal edge of the bbox sits at x.
   const overlayPlacement: React.CSSProperties = {
-    left: `${captionStyle.posX}%`,
-    top: `${captionStyle.posY}%`,
+    left: `${posX}%`,
+    top: `${posY}%`,
     textAlign: align,
     maxWidth: align === 'center' ? '90%' : '50%',
     transform: (() => {
@@ -144,15 +192,18 @@ export function VideoPlayer() {
   }
 
   return (
-    <div className={styles.wrapper}>
+    <div className="relative w-full bg-black rounded-md overflow-hidden">
       <video
         ref={videoRef}
         src={videoUrl}
         controls
-        className={styles.video}
+        className="w-full block max-h-[70vh] object-contain"
       />
       {activeCaption && (
-        <div className={styles.overlay} style={overlayStyle}>
+        <div
+          className="absolute font-bold p-0 pointer-events-none whitespace-pre-wrap tracking-[0.01em]"
+          style={overlayStyle}
+        >
           {activeCaption.text}
         </div>
       )}
