@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCaptionStore, type ModelSize } from '../stores/captionStore'
 import { loadSettings, saveSettings } from '../utils/settings'
+import { getCachedModels } from '../api'
 
 interface ModelOption {
   value: ModelSize
@@ -33,6 +34,13 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
   const setDiarization = useCaptionStore((s) => s.setDiarizationConfig)
   const isReTranscribing = useCaptionStore((s) => s.isReTranscribing)
   const scriptInputRef = useRef<HTMLInputElement>(null)
+  const [cachedModels, setCachedModels] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    getCachedModels()
+      .then((r) => setCachedModels(new Set(r.cached)))
+      .catch(() => {})
+  }, [])
 
   const onHfTokenChange = (token: string) => {
     setDiarization({ hfToken: token })
@@ -77,19 +85,31 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
           >
             {MODEL_OPTIONS.map((opt) => {
               const active = config.modelSize === opt.value
+              const downloaded = cachedModels.has(opt.value)
               return (
                 <button
                   key={opt.value}
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  className={`flex flex-col gap-1 px-2.5 py-3 rounded-md border text-left transition-colors ${
+                  className={`relative flex flex-col gap-1 px-2.5 py-3 rounded-md border text-left transition-colors ${
                     active
                       ? 'bg-accent border-accent text-white hover:bg-accent-light hover:border-accent-light'
                       : 'bg-input border-border text-text-primary hover:border-accent-light'
                   }`}
                   onClick={() => setConfig({ modelSize: opt.value })}
                 >
+                  {downloaded && (
+                    <span
+                      aria-label="Already downloaded"
+                      title="Already downloaded"
+                      className={`absolute top-1.5 right-1.5 text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-sm ${
+                        active ? 'bg-white/20 text-white' : 'bg-accent/15 text-accent-light'
+                      }`}
+                    >
+                      ✓ Cached
+                    </span>
+                  )}
                   <span className="text-sm font-semibold">{opt.label}</span>
                   <span className="text-[11px] opacity-75">{opt.size} · {opt.speed}</span>
                 </button>

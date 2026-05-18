@@ -119,6 +119,12 @@ export async function checkModelStatus(): Promise<{ downloaded: boolean; size_mb
   return res.json()
 }
 
+export async function getCachedModels(): Promise<{ cached: string[] }> {
+  const res = await fetch(apiUrl('/cached-models'))
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
 export interface Capabilities {
   pyannote_cached: boolean
   demucs_cached: boolean

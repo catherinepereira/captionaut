@@ -17,11 +17,22 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
-WHISPER_MODEL_PATH = Path.home() / ".cache" / "whisper" / "base.pt"
+WHISPER_CACHE_DIR = Path.home() / ".cache" / "whisper"
+WHISPER_MODEL_PATH = WHISPER_CACHE_DIR / "base.pt"
 WHISPER_MODEL_URL = (
     "https://openaipublic.azureedge.net/main/whisper/models/"
     "ed3a0b6b1c0edf879ad9b11b1af5a0e6ab5db9205f891f668f8b0e6c6326e34e/base.pt"
 )
+
+# Maps the size label the UI shows to the on-disk filename Whisper writes.
+# `large` is an alias for the most recent large checkpoint, currently large-v3.
+_MODEL_FILENAMES = {
+    "tiny": "tiny.pt",
+    "base": "base.pt",
+    "small": "small.pt",
+    "medium": "medium.pt",
+    "large": "large-v3.pt",
+}
 
 # Pyannote cache layout: ~/.cache/huggingface/hub/models--pyannote--speaker-diarization-3.1/
 PYANNOTE_CACHE_DIR = (
@@ -48,6 +59,16 @@ async def model_status():
         return {"downloaded": True, "size_mb": size_mb}
     except FileNotFoundError:
         return {"downloaded": False, "size_mb": 0}
+
+
+@router.get("/cached-models")
+async def cached_models():
+    """Report which Whisper sizes have weights on disk so the picker can mark them."""
+    cached = [
+        size for size, filename in _MODEL_FILENAMES.items()
+        if (WHISPER_CACHE_DIR / filename).exists()
+    ]
+    return {"cached": cached}
 
 
 @router.get("/capabilities")

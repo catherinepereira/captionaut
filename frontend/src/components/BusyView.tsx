@@ -1,17 +1,23 @@
 import { useCaptionStore } from '../stores/captionStore'
 
+const MODEL_LABELS: Record<string, string> = {
+  tiny: 'Tiny', base: 'Base', small: 'Small', medium: 'Medium', large: 'Large',
+}
+
 export function BusyView() {
   const state = useCaptionStore((s) => s.state)
   const videoFileName = useCaptionStore((s) => s.videoFile?.name ?? null)
   const transcribeProgress = useCaptionStore((s) => s.transcribeProgress)
   const transcribeStage = useCaptionStore((s) => s.transcribeStage)
+  const modelSize = useCaptionStore((s) => s.transcribeConfig.modelSize)
+  const modelLabel = MODEL_LABELS[modelSize] ?? modelSize
 
   const isTranscribing = state === 'transcribing'
   const title = !isTranscribing
     ? 'Uploading video…'
     : transcribeStage === 'downloading_model'
-      ? 'Downloading Whisper model…'
-      : 'Transcribing with Whisper…'
+      ? `Downloading Whisper ${modelLabel} model…`
+      : `Transcribing with Whisper ${modelLabel}…`
 
   const hint = !isTranscribing
     ? 'This may take a moment'
