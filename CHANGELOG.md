@@ -21,9 +21,9 @@ release; until then we track unreleased work under **[Unreleased]**.
     transcription.
 - GPU enforcement: backend exits at startup on CPU-only systems with a clear
   message.
-- Full-stack `Dockerfile` (multi-stage: Node build for the frontend, CUDA Python
-  for the backend) and `docker-compose.yml`. `docker compose up` serves the
-  entire app at `:8010`.
+- Electron desktop build: PyInstaller-bundled backend, electron-builder
+  produces a portable Windows zip with bundled FFmpeg. macOS and Linux build
+  targets are wired up in CI but only the Windows zip is tested locally.
 - Manual speaker assignment per caption (inline dropdown + bulk-assign in the
   selection toolbar), an "+ Add speaker" affordance in the Speakers panel,
   and per-caption text + outline color overrides emitted as inline ASS tags
@@ -55,9 +55,8 @@ release; until then we track unreleased work under **[Unreleased]**.
   editor.
 
 ### Removed
-- Electron desktop shell, electron-builder config, PyInstaller spec and
-  hooks, and the GitHub Actions release workflow. The supported distribution
-  paths are now manual native install and the Docker image.
+- Docker / docker-compose setup. The supported distribution paths are now
+  the local dev install and the Electron desktop build.
 - Bootstrap scripts (`start.sh`, `start.ps1`) and the older per-process
   scripts. Developers install + run things directly; the README has the
   commands.

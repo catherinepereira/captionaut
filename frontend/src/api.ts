@@ -7,14 +7,46 @@ export interface TranscribeResult {
   speakers: string[]
 }
 
-// Same-origin in every environment: Vite proxies `/api` in dev, FastAPI
-// serves the built React bundle under `/` in production.
-const BASE = '/api'
+interface ElectronBridge {
+  getBackendPort: () => Promise<number | null>
+  isElectron: true
+}
+
+declare global {
+  interface Window {
+    captionaut?: ElectronBridge
+  }
+}
+
+// In local dev the frontend and backend share an origin (Vite proxies
+// `/api` to FastAPI), so the literal `/api` prefix works. In packaged
+// Electron the renderer loads from a `file://` URL and must be told where
+// the spawned backend is listening; preload exposes
+// `window.captionaut.getBackendPort()` for that.
+let _basePromise: Promise<string> | null = null
+
+function resolveBase(): Promise<string> {
+  if (_basePromise) return _basePromise
+  const bridge = typeof window !== 'undefined' ? window.captionaut : undefined
+  const next = bridge?.isElectron
+    ? bridge.getBackendPort().then((port) => {
+      if (!port) throw new Error('Backend not running')
+      return `http://127.0.0.1:${port}/api`
+    })
+    : Promise.resolve('/api')
+  _basePromise = next
+  return next
+}
+
+async function apiUrl(path: string): Promise<string> {
+  const base = await resolveBase()
+  return `${base}${path}`
+}
 
 export async function uploadVideo(file: File): Promise<string> {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${BASE}/upload`, { method: 'POST', body: form })
+  const res = await fetch(await apiUrl('/upload'), { method: 'POST', body: form })
   if (!res.ok) throw new Error(await res.text())
   return (await res.json()).job_id
 }
@@ -28,7 +60,7 @@ export async function transcribeJob(
     denoise: boolean
   },
 ): Promise<TranscribeResult> {
-  const res = await fetch(`${BASE}/transcribe/${jobId}`, {
+  const res = await fetch(await apiUrl(`/transcribe/${jobId}`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -50,7 +82,7 @@ export async function transcribeJob(
 export async function alignScript(jobId: string, file: File): Promise<AlignmentResult[]> {
   const form = new FormData()
   form.append('script_file', file)
-  const res = await fetch(`${BASE}/align/${jobId}`, { method: 'POST', body: form })
+  const res = await fetch(await apiUrl(`/align/${jobId}`), { method: 'POST', body: form })
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
@@ -79,7 +111,7 @@ export async function renderCaptions(
   speakers: SpeakerStyleMaps,
   format: RenderFormat = 'mp4',
 ): Promise<Blob> {
-  const res = await fetch(`${BASE}/render`, {
+  const res = await fetch(await apiUrl('/render'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -102,7 +134,7 @@ export async function renderCaptions(
 }
 
 export async function exportCaptions(captions: Caption[], format: 'srt' | 'vtt'): Promise<string> {
-  const res = await fetch(`${BASE}/export`, {
+  const res = await fetch(await apiUrl('/export'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ captions, format }),
@@ -112,7 +144,7 @@ export async function exportCaptions(captions: Caption[], format: 'srt' | 'vtt')
 }
 
 export async function checkModelStatus(): Promise<{ downloaded: boolean; size_mb: number }> {
-  const res = await fetch(`${BASE}/model-status`)
+  const res = await fetch(await apiUrl('/model-status'))
   return res.json()
 }
 
@@ -122,7 +154,7 @@ export interface Capabilities {
 }
 
 export async function checkCapabilities(): Promise<Capabilities> {
-  const res = await fetch(`${BASE}/capabilities`)
+  const res = await fetch(await apiUrl('/capabilities'))
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
@@ -146,31 +178,42 @@ export function streamProgress(
     onError?: (msg: string) => void
   },
 ): StreamHandle {
-  const es = new EventSource(`${BASE}${path}`)
   let closed = false
+  let es: EventSource | null = null
   const close = () => {
     if (closed) return
     closed = true
-    es.close()
+    es?.close()
   }
-  es.onmessage = (e) => {
-    let data: ProgressEvent
-    try { data = JSON.parse(e.data) } catch { return }
-    if (data.status === 'error') {
-      handlers.onError?.(data.message ?? 'Unknown error')
-      close()
-      return
+
+  // Resolve the base asynchronously, then open the EventSource. If the
+  // caller calls close() before resolution we set `closed` and never open.
+  apiUrl(path).then((u) => {
+    if (closed) return
+    es = new EventSource(u)
+    es.onmessage = (e) => {
+      let data: ProgressEvent
+      try { data = JSON.parse(e.data) } catch { return }
+      if (data.status === 'error') {
+        handlers.onError?.(data.message ?? 'Unknown error')
+        close()
+        return
+      }
+      if (typeof data.percent === 'number') handlers.onProgress?.(data.percent)
+      if (data.done || data.status === 'done' || data.status === 'already_downloaded') {
+        handlers.onDone?.()
+        close()
+      }
     }
-    if (typeof data.percent === 'number') handlers.onProgress?.(data.percent)
-    if (data.done || data.status === 'done' || data.status === 'already_downloaded') {
-      handlers.onDone?.()
+    es.onerror = () => {
+      handlers.onError?.('Connection lost')
       close()
     }
-  }
-  es.onerror = () => {
-    handlers.onError?.('Connection lost')
+  }).catch((err) => {
+    handlers.onError?.(err instanceof Error ? err.message : String(err))
     close()
-  }
+  })
+
   return { close }
 }
 
