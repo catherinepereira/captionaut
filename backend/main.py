@@ -5,9 +5,11 @@ from fastapi import FastAPI
 
 from .api.routes import router
 
-# CAPTIONAUT_DATA_DIR is set by Electron to the per-user app data directory.
-# Native dev falls back to the backend source dir.
-_data_root = Path(os.environ.get("CAPTIONAUT_DATA_DIR") or Path(__file__).parent)
+# Uploads, rendered outputs, and the denoised audio cache live under
+# `data/` at the repo root by default. Override with CAPTIONAUT_DATA_DIR.
+_data_root = Path(
+    os.environ.get("CAPTIONAUT_DATA_DIR") or Path(__file__).parent.parent / "data"
+)
 
 UPLOAD_DIR = _data_root / "uploads"
 OUTPUT_DIR = _data_root / "outputs"

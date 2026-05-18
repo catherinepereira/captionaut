@@ -18,9 +18,8 @@ frontend/node_modules/
 # Frontend build
 frontend/dist/
 
-# Local uploads / outputs (user data, never committed)
-backend/uploads/
-backend/outputs/
+# Local uploads, rendered outputs, and the denoised audio cache (never committed)
+data/
 *.log
 
 # OS

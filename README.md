@@ -61,7 +61,7 @@ Open <http://localhost:5200>. The first transcription downloads the Whisper `bas
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `backend/` |
+| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `./data/` at the repo root |
 | `FFMPEG_BIN` | Override the FFmpeg binary used for rendering | Whatever is on `PATH` |
 | `HF_TOKEN` | HuggingFace token for pyannote model downloads | Read from the Settings panel in the UI; stored in localStorage |
 
