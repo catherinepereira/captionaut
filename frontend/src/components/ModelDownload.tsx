@@ -55,8 +55,13 @@ export function ModelDownload({ onReady }: Props) {
     <div className="flex items-center justify-center min-h-screen bg-bg">
       <div className="bg-card border border-border rounded-2xl px-14 py-12 max-w-[480px] w-full text-center">
         <h2 className="text-2xl font-bold text-text-primary mb-4">One-time setup</h2>
-        <p className="text-sm text-text-muted leading-relaxed mb-8 [&_strong]:text-accent-light">
-          Captionaut uses <strong>Whisper AI</strong> to transcribe your videos.
+        <p className="text-sm text-text-muted leading-relaxed mb-8">
+          Captionaut uses <a
+            href="https://github.com/openai/whisper"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-accent-light underline-offset-2 hover:underline"
+          >Whisper AI</a> to transcribe your videos.
           The transcription model is about 145 MB and only needs to download once.
         </p>
 
