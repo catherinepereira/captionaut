@@ -14,6 +14,7 @@ AudioInput = str | np.ndarray
 # (whisper/__init__.py does `from .transcribe import transcribe`). Grab the
 # real module from sys.modules so we can monkey-patch its `tqdm.tqdm`.
 _whisper_transcribe_mod = sys.modules["whisper.transcribe"]
+_whisper_pkg = sys.modules["whisper"]
 
 # Single-slot cache: switching size frees the previous model, otherwise multiple
 # sizes can stack ~5 GB of weights in one session.
@@ -23,7 +24,15 @@ _model_slot: tuple[str, object] | None = None
 VALID_MODEL_SIZES = ("tiny", "base", "small", "medium", "large")
 
 
-def get_model(size: str = "base"):
+def get_model(
+    size: str = "base",
+    download_cb: Callable[[int], None] | None = None,
+):
+    """Return a cached whisper model, downloading weights if not on disk.
+
+    `download_cb` receives 0..100 percent ticks for the weight download, if one
+    happens. It's never called when the model is already cached.
+    """
     global _model_slot
     if size not in VALID_MODEL_SIZES:
         raise ValueError(f"Invalid model size: {size}")
@@ -35,7 +44,19 @@ def get_model(size: str = "base"):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    model = whisper.load_model(size)
+    if download_cb is None:
+        model = whisper.load_model(size)
+    else:
+        # whisper/__init__.py does `from tqdm import tqdm`, so the class lives
+        # as an attribute of the whisper package. Swap it for the duration of
+        # load_model() so download byte ticks reach our callback.
+        original = _whisper_pkg.tqdm
+        _whisper_pkg.tqdm = _make_progress_tqdm(download_cb)
+        try:
+            model = whisper.load_model(size)
+        finally:
+            _whisper_pkg.tqdm = original
+
     _model_slot = (size, model)
     return model
 
@@ -80,13 +101,14 @@ def transcribe(
     *,
     model_size: str = "base",
     initial_prompt: str | None = None,
+    download_cb: Callable[[int], None] | None = None,
 ) -> list[Caption]:
     """Transcribe a file path or an in-memory 16 kHz mono float32 numpy array.
 
     A pre-decoded array skips Whisper's internal FFmpeg roundtrip, which matters
     when an earlier pipeline stage already decoded the audio.
     """
-    model = get_model(model_size)
+    model = get_model(model_size, download_cb=download_cb)
 
     # word_timestamps=True tightens segment boundaries vs Whisper's defaults.
     transcribe_kwargs = {"word_timestamps": True}

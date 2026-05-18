@@ -130,9 +130,12 @@ export async function checkCapabilities(): Promise<Capabilities> {
   return res.json()
 }
 
+export type ProgressStage = 'preparing' | 'downloading_model' | 'transcribing' | 'diarizing'
+
 interface ProgressEvent {
   status?: 'downloading' | 'done' | 'already_downloaded' | 'error'
   percent?: number
+  stage?: ProgressStage
   done?: boolean
   message?: string
 }
@@ -145,6 +148,7 @@ export function streamProgress(
   path: string,
   handlers: {
     onProgress?: (pct: number) => void
+    onStage?: (stage: ProgressStage) => void
     onDone?: () => void
     onError?: (msg: string) => void
   },
@@ -160,6 +164,7 @@ export function streamProgress(
       close()
       return
     }
+    if (data.stage) handlers.onStage?.(data.stage)
     if (typeof data.percent === 'number') handlers.onProgress?.(data.percent)
     if (data.done || data.status === 'done' || data.status === 'already_downloaded') {
       handlers.onDone?.()

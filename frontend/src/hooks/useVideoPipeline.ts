@@ -27,6 +27,7 @@ export function useVideoPipeline() {
   const setAlignment = useCaptionStore((s) => s.setAlignment)
   const setError = useCaptionStore((s) => s.setError)
   const setTranscribeProgress = useCaptionStore((s) => s.setTranscribeProgress)
+  const setTranscribeStage = useCaptionStore((s) => s.setTranscribeStage)
   const reset = useCaptionStore((s) => s.reset)
 
   const [restorePrompt, setRestorePrompt] = useState<RestorePrompt | null>(null)
@@ -152,9 +153,11 @@ export function useVideoPipeline() {
     }
 
     setState('transcribing')
+    setTranscribeStage(null)
     try {
       progressStreamRef.current = streamProgress(`/transcribe-progress/${jobId}`, {
         onProgress: setTranscribeProgress,
+        onStage: setTranscribeStage,
       })
 
       const { captions, speakers } = await transcribeJob(jobId, {

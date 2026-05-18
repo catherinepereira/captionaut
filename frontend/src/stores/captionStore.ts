@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { ProgressStage } from '../api'
 
 export interface Caption {
   id: number
@@ -130,6 +131,7 @@ interface CaptionStore {
   scrollToCaptionRequest: number | null
   error: string | null
   transcribeProgress: number
+  transcribeStage: ProgressStage | null
   transcribeConfig: TranscribeConfig
   isReTranscribing: boolean
   captionStyle: CaptionStyle
@@ -177,6 +179,7 @@ interface CaptionStore {
   requestScrollToCaption: (id: number | null) => void
   setError: (msg: string | null) => void
   setTranscribeProgress: (p: number) => void
+  setTranscribeStage: (s: ProgressStage | null) => void
   setTranscribeConfig: (patch: Partial<TranscribeConfig>) => void
   setDiarizationConfig: (patch: Partial<DiarizationConfig>) => void
   setCaptionStyle: (patch: Partial<CaptionStyle>) => void
@@ -247,6 +250,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
   scrollToCaptionRequest: null,
   error: null,
   transcribeProgress: 0,
+  transcribeStage: null,
   transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
   isReTranscribing: false,
   captionStyle: DEFAULT_CAPTION_STYLE,
@@ -450,6 +454,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
     set((s) => (s.scrollToCaptionRequest === id ? s : { scrollToCaptionRequest: id })),
   setError: (msg) => set((s) => (s.error === msg ? s : { error: msg })),
   setTranscribeProgress: (p) => set((s) => (s.transcribeProgress === p ? s : { transcribeProgress: p })),
+  setTranscribeStage: (st) => set((s) => (s.transcribeStage === st ? s : { transcribeStage: st })),
   setTranscribeConfig: (patch) => set((store) => ({ transcribeConfig: { ...store.transcribeConfig, ...patch } })),
   setDiarizationConfig: (patch) =>
     set((store) => ({
@@ -495,7 +500,7 @@ export const useCaptionStore = create<CaptionStore>((set) => ({
       speakerOutlineThickness: {}, speakerFontFamilies: {}, speakerFontSizes: {},
       speakerPosX: {}, speakerPosY: {}, speakerAlign: {},
       currentTime: 0, videoDuration: 0, seekRequest: null, scrollToCaptionRequest: null, error: null,
-      transcribeProgress: 0, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
+      transcribeProgress: 0, transcribeStage: null, transcribeConfig: DEFAULT_TRANSCRIBE_CONFIG,
       isReTranscribing: false,
       thumbnail: null,
       projectName: null,

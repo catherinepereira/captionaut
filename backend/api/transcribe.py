@@ -53,7 +53,7 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
         raise HTTPException(400, "Diarization requires a HuggingFace token")
 
     _, OUTPUT_DIR = get_dirs()
-    touch_job(job_id, status="transcribing", pct=0)
+    touch_job(job_id, status="transcribing", pct=0, stage="preparing")
     loop = asyncio.get_running_loop()
 
     ranges = _progress_ranges(req.denoise, req.diarization.enabled)
@@ -89,6 +89,14 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
         ws_start, ws_end = ranges["whisper"]
 
         def _whisper_cb(pct: int) -> None:
+            job["stage"] = "transcribing"
+            job["pct"] = ws_start + int(pct * (ws_end - ws_start) / 100)
+
+        def _download_cb(pct: int) -> None:
+            # The download bar drives its own percentage that stays inside the
+            # whisper slice but reports stage=downloading_model so the UI can
+            # swap its label.
+            job["stage"] = "downloading_model"
             job["pct"] = ws_start + int(pct * (ws_end - ws_start) / 100)
 
         def _run_whisper():
@@ -97,6 +105,7 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
                 progress_cb=_whisper_cb,
                 model_size=req.model_size,
                 initial_prompt=req.initial_prompt,
+                download_cb=_download_cb,
             )
 
         captions = await loop.run_in_executor(None, _run_whisper)
@@ -136,6 +145,7 @@ async def transcribe_progress(job_id: str):
         job = get_job(job_id) or {}
         return {
             "pct": job.get("pct", 0),
+            "stage": job.get("stage"),
             "done": job.get("status") == "done",
         }
 

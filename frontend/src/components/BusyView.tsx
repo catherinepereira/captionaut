@@ -4,9 +4,20 @@ export function BusyView() {
   const state = useCaptionStore((s) => s.state)
   const videoFileName = useCaptionStore((s) => s.videoFile?.name ?? null)
   const transcribeProgress = useCaptionStore((s) => s.transcribeProgress)
+  const transcribeStage = useCaptionStore((s) => s.transcribeStage)
 
   const isTranscribing = state === 'transcribing'
-  const title = isTranscribing ? 'Transcribing with Whisper…' : 'Uploading video…'
+  const title = !isTranscribing
+    ? 'Uploading video…'
+    : transcribeStage === 'downloading_model'
+      ? 'Downloading Whisper model…'
+      : 'Transcribing with Whisper…'
+
+  const hint = !isTranscribing
+    ? 'This may take a moment'
+    : transcribeStage === 'downloading_model'
+      ? 'First-run only. Weights are cached for next time.'
+      : 'Whisper processes about 5× faster than real-time on most machines.'
 
   return (
     <div
@@ -46,9 +57,7 @@ export function BusyView() {
       )}
 
       <p className="text-xs text-text-dim max-w-[480px] text-center">
-        {isTranscribing
-          ? 'Whisper processes about 5× faster than real-time on most machines.'
-          : 'This may take a moment'}
+        {hint}
       </p>
     </div>
   )
