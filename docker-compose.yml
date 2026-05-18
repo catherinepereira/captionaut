@@ -4,7 +4,8 @@ services:
     image: captionaut:latest
     container_name: captionaut
     ports:
-      - "8200:8200"
+      # Bound to localhost so the API is not reachable via LAN.
+      - "127.0.0.1:8200:8200"
     environment:
       # Optional. Without it diarization is disabled in the UI.
       # Put HF_TOKEN=hf_... in a .env file next to this compose file.

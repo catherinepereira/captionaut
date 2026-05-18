@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Caption(BaseModel):
@@ -30,7 +30,7 @@ class DiarizationOptions(BaseModel):
 
 class TranscribeRequest(BaseModel):
     model_size: ModelSize = "base"
-    initial_prompt: str | None = None
+    initial_prompt: str | None = Field(default=None, max_length=1000)
     diarization: DiarizationOptions = DiarizationOptions()
     denoise: bool = False
 
