@@ -33,6 +33,13 @@ def main():
     if args.data_dir:
         os.environ["CAPTIONAUT_DATA_DIR"] = args.data_dir
 
+    # Electron sets FFMPEG_BIN to the bundled binary. Whisper's load_audio
+    # shells out to a hardcoded `ffmpeg`, so put its directory on PATH too.
+    ffmpeg_bin = os.environ.get("FFMPEG_BIN")
+    if ffmpeg_bin and os.path.isfile(ffmpeg_bin):
+        ffmpeg_dir = os.path.dirname(ffmpeg_bin)
+        os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
+
     device = _require_gpu()
     sys.stderr.write(f"Captionaut: using {device}\n")
 
