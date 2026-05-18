@@ -26,7 +26,7 @@ def _require_gpu() -> str:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--port", type=int, default=8200)
     parser.add_argument("--data-dir", type=str, default="")
     args = parser.parse_args()
 

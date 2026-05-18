@@ -35,7 +35,7 @@ On Apple Silicon, skip the `--index-url`: the default torch wheel includes MPS.
 Then in two terminals:
 
 ```bash
-python -m backend --port 8010         # terminal 1
+python -m backend                     # terminal 1
 cd frontend && npm run dev            # terminal 2
 ```
 
