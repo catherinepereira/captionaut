@@ -56,6 +56,15 @@ jobs:
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
 
+      # openai-whisper builds from sdist and its setup.py imports pkg_resources,
+      # which setuptools >=81 no longer ships. Pin setuptools in pip's isolated
+      # build env via PIP_CONSTRAINT so the wheel build can find pkg_resources.
+      - name: Write pip build constraints
+        shell: bash
+        run: |
+          echo "setuptools<81" > "$GITHUB_WORKSPACE/pip-constraints.txt"
+          echo "PIP_CONSTRAINT=$GITHUB_WORKSPACE/pip-constraints.txt" >> "$GITHUB_ENV"
+
       - name: Install Python deps (Windows + Linux, CUDA 12.6 wheels)
         if: matrix.os != 'macos-latest'
         run: |
