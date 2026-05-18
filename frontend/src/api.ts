@@ -7,46 +7,17 @@ export interface TranscribeResult {
   speakers: string[]
 }
 
-interface ElectronBridge {
-  getBackendPort: () => Promise<number | null>
-  isElectron: true
-}
+// Frontend and backend share an origin in dev: Vite proxies `/api` to FastAPI.
+const API_BASE = '/api'
 
-declare global {
-  interface Window {
-    captionaut?: ElectronBridge
-  }
-}
-
-// In local dev the frontend and backend share an origin (Vite proxies
-// `/api` to FastAPI), so the literal `/api` prefix works. In packaged
-// Electron the renderer loads from a `file://` URL and must be told where
-// the spawned backend is listening; preload exposes
-// `window.captionaut.getBackendPort()` for that.
-let _basePromise: Promise<string> | null = null
-
-function resolveBase(): Promise<string> {
-  if (_basePromise) return _basePromise
-  const bridge = typeof window !== 'undefined' ? window.captionaut : undefined
-  const next = bridge?.isElectron
-    ? bridge.getBackendPort().then((port) => {
-      if (!port) throw new Error('Backend not running')
-      return `http://127.0.0.1:${port}/api`
-    })
-    : Promise.resolve('/api')
-  _basePromise = next
-  return next
-}
-
-async function apiUrl(path: string): Promise<string> {
-  const base = await resolveBase()
-  return `${base}${path}`
+function apiUrl(path: string): string {
+  return `${API_BASE}${path}`
 }
 
 export async function uploadVideo(file: File): Promise<string> {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(await apiUrl('/upload'), { method: 'POST', body: form })
+  const res = await fetch(apiUrl('/upload'), { method: 'POST', body: form })
   if (!res.ok) throw new Error(await res.text())
   return (await res.json()).job_id
 }
@@ -60,7 +31,7 @@ export async function transcribeJob(
     denoise: boolean
   },
 ): Promise<TranscribeResult> {
-  const res = await fetch(await apiUrl(`/transcribe/${jobId}`), {
+  const res = await fetch(apiUrl(`/transcribe/${jobId}`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -82,7 +53,7 @@ export async function transcribeJob(
 export async function alignScript(jobId: string, file: File): Promise<AlignmentResult[]> {
   const form = new FormData()
   form.append('script_file', file)
-  const res = await fetch(await apiUrl(`/align/${jobId}`), { method: 'POST', body: form })
+  const res = await fetch(apiUrl(`/align/${jobId}`), { method: 'POST', body: form })
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
@@ -111,7 +82,7 @@ export async function renderCaptions(
   speakers: SpeakerStyleMaps,
   format: RenderFormat = 'mp4',
 ): Promise<Blob> {
-  const res = await fetch(await apiUrl('/render'), {
+  const res = await fetch(apiUrl('/render'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -134,7 +105,7 @@ export async function renderCaptions(
 }
 
 export async function exportCaptions(captions: Caption[], format: 'srt' | 'vtt'): Promise<string> {
-  const res = await fetch(await apiUrl('/export'), {
+  const res = await fetch(apiUrl('/export'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ captions, format }),
@@ -144,7 +115,7 @@ export async function exportCaptions(captions: Caption[], format: 'srt' | 'vtt')
 }
 
 export async function checkModelStatus(): Promise<{ downloaded: boolean; size_mb: number }> {
-  const res = await fetch(await apiUrl('/model-status'))
+  const res = await fetch(apiUrl('/model-status'))
   return res.json()
 }
 
@@ -154,7 +125,7 @@ export interface Capabilities {
 }
 
 export async function checkCapabilities(): Promise<Capabilities> {
-  const res = await fetch(await apiUrl('/capabilities'))
+  const res = await fetch(apiUrl('/capabilities'))
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
@@ -178,41 +149,27 @@ export function streamProgress(
     onError?: (msg: string) => void
   },
 ): StreamHandle {
-  let closed = false
-  let es: EventSource | null = null
-  const close = () => {
-    if (closed) return
-    closed = true
-    es?.close()
-  }
+  const es = new EventSource(apiUrl(path))
+  const close = () => es.close()
 
-  // Resolve the base asynchronously, then open the EventSource. If the
-  // caller calls close() before resolution we set `closed` and never open.
-  apiUrl(path).then((u) => {
-    if (closed) return
-    es = new EventSource(u)
-    es.onmessage = (e) => {
-      let data: ProgressEvent
-      try { data = JSON.parse(e.data) } catch { return }
-      if (data.status === 'error') {
-        handlers.onError?.(data.message ?? 'Unknown error')
-        close()
-        return
-      }
-      if (typeof data.percent === 'number') handlers.onProgress?.(data.percent)
-      if (data.done || data.status === 'done' || data.status === 'already_downloaded') {
-        handlers.onDone?.()
-        close()
-      }
+  es.onmessage = (e) => {
+    let data: ProgressEvent
+    try { data = JSON.parse(e.data) } catch { return }
+    if (data.status === 'error') {
+      handlers.onError?.(data.message ?? 'Unknown error')
+      close()
+      return
     }
-    es.onerror = () => {
-      handlers.onError?.('Connection lost')
+    if (typeof data.percent === 'number') handlers.onProgress?.(data.percent)
+    if (data.done || data.status === 'done' || data.status === 'already_downloaded') {
+      handlers.onDone?.()
       close()
     }
-  }).catch((err) => {
-    handlers.onError?.(err instanceof Error ? err.message : String(err))
+  }
+  es.onerror = () => {
+    handlers.onError?.('Connection lost')
     close()
-  })
+  }
 
   return { close }
 }

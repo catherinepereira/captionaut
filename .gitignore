@@ -36,13 +36,3 @@ Thumbs.db
 .env
 .env.local
 
-# Electron + PyInstaller build outputs
-electron/dist/
-dist/
-build/
-release/
-
-# Bundled ffmpeg binaries (downloaded per-build via electron/scripts/download-ffmpeg.mjs)
-electron/resources/ffmpeg/win/
-electron/resources/ffmpeg/mac/
-electron/resources/ffmpeg/linux/

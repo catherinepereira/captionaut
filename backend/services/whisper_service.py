@@ -7,7 +7,6 @@ import torch
 import whisper
 
 from ..models.schemas import Caption
-from . import denoise_service
 
 AudioInput = str | np.ndarray
 
@@ -88,15 +87,6 @@ def transcribe(
     when an earlier pipeline stage already decoded the audio.
     """
     model = get_model(model_size)
-
-    # Decode paths ourselves so Whisper doesn't shell out to a bare `ffmpeg`.
-    # In the packaged Electron build, ffmpeg is bundled via FFMPEG_BIN and not
-    # necessarily on PATH, so Whisper's internal load_audio would hang.
-    if isinstance(source, str):
-        source = denoise_service.to_speech_mono(
-            denoise_service.decode_audio(source, target_sr=16_000, channels=1),
-            16_000,
-        )
 
     # word_timestamps=True tightens segment boundaries vs Whisper's defaults.
     transcribe_kwargs = {"word_timestamps": True}
