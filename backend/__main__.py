@@ -26,6 +26,7 @@ def _require_gpu() -> str:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--host", type=str, default="")
     parser.add_argument("--port", type=int, default=8200)
     parser.add_argument("--data-dir", type=str, default="")
     args = parser.parse_args()
@@ -41,7 +42,7 @@ def main():
     from backend.config import BACKEND_HOST
     from backend.main import app
 
-    uvicorn.run(app, host=BACKEND_HOST, port=args.port, log_level="warning")
+    uvicorn.run(app, host=args.host or BACKEND_HOST, port=args.port, log_level="warning")
 
 
 if __name__ == "__main__":

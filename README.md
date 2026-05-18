@@ -2,7 +2,7 @@
 
 Captionaut is a video captioning app. You drop a video onto the page, Whisper transcribes it on your machine, you clean up the captions in an inline editor, and then you either export `.srt` / `.vtt` or render the captions directly into a new video file.
 
-The pipeline is Whisper for transcription, pyannote for optional speaker diarization, Demucs for optional vocal isolation when the audio is noisy, and FFmpeg for the render step. The frontend is React + Tailwind; the backend is FastAPI. Captionaut runs as a local dev setup: Vite for the renderer, Python for the backend.
+The pipeline is Whisper for transcription, pyannote for optional speaker diarization, Demucs for optional vocal isolation when the audio is noisy, and FFmpeg for the render step. The frontend is React + Tailwind; the backend is FastAPI. Two supported deployment paths: a **local dev** setup (Vite + Python) and a **Docker container** that bundles everything behind a single CUDA-enabled image.
 
 ## Hardware
 
@@ -41,6 +41,42 @@ cd frontend && npm run dev            # terminal 2
 
 Open <http://localhost:5200>. The first transcription downloads the Whisper `base` model (~145 MB) into `~/.cache/whisper`.
 
+## Docker
+
+```bash
+docker compose up
+```
+
+Open <http://localhost:8200>. The container builds the React bundle, installs CUDA-enabled torch, and serves everything from FastAPI on a single port. The compose file already maps port `8200` and reserves the host GPU.
+
+If you'd rather use `docker run` directly, you need to pass `--gpus all` and publish the port yourself:
+
+```bash
+docker run --rm --gpus all -p 8200:8200 captionaut
+```
+
+Prereqs on the host:
+- NVIDIA driver ≥ 550
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) so the container can see the GPU
+- Docker Engine 19.03+ with the `nvidia` runtime
+
+Named volumes persist data between restarts:
+- `captionaut-data` → `/data` (uploads, rendered outputs, denoised audio cache)
+- `whisper-cache` → `/root/.cache/whisper` (Whisper model files)
+- `hf-cache` → `/root/.cache/huggingface` (pyannote + Demucs weights)
+
+For diarization, drop your HuggingFace token in a `.env` file next to `docker-compose.yml`:
+
+```
+HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Without `HF_TOKEN` the diarization toggle is disabled in the UI.
+
+Trusted-network only. There's no auth in front of `/api`. Don't expose port 8200 publicly without a reverse proxy that handles authentication.
+
+Apple Silicon and AMD aren't supported in Docker because GPU passthrough only works for NVIDIA. Mac users should use the local-dev path.
+
 ## What's in the box
 
 - Drag-and-drop upload for mp4, mov, mkv, webm, avi, and m4v (capped at 2 GB)
@@ -61,7 +97,7 @@ Open <http://localhost:5200>. The first transcription downloads the Whisper `bas
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `./data/` at the repo root |
+| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `./data/` at the repo root in local dev, `/data` in the container |
 | `FFMPEG_BIN` | Override the FFmpeg binary used for rendering | Whatever is on `PATH` |
 | `HF_TOKEN` | HuggingFace token for pyannote model downloads | Read from the Settings panel in the UI; stored in localStorage |
 
