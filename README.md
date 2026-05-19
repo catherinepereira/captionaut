@@ -50,12 +50,12 @@ Open <http://localhost:5200>. The first transcription downloads the Whisper `bas
 docker compose up
 ```
 
-Open <http://localhost:8200>. The container builds the React bundle, installs CUDA-enabled torch, and serves everything from FastAPI on a single port. The compose file already maps port `8200` and reserves the host GPU.
+Open <http://localhost:8200>. The container builds the React bundle, installs CUDA-enabled torch, and serves everything from FastAPI on a single port. The compose file binds port `8200` to `127.0.0.1` (localhost-only, not reachable on the LAN) and reserves the host GPU.
 
-If you'd rather use `docker run` directly, you need to pass `--gpus all` and publish the port yourself:
+If you'd rather use `docker run` directly, you need to pass `--gpus all` and publish the port yourself. Keep the localhost binding to match the compose default:
 
 ```bash
-docker run --rm --gpus all -p 8200:8200 captionaut
+docker run --rm --gpus all -p 127.0.0.1:8200:8200 captionaut
 ```
 
 Prereqs on the host:

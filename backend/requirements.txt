@@ -1,6 +1,6 @@
 # Captionaut requires a CUDA-capable GPU or Apple Silicon.
 # On Linux/Windows with NVIDIA GPUs, install CUDA-enabled torch first:
-#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu126
 # On Apple Silicon, the default torch wheel already includes MPS.
 # Then install everything else with: pip install -r backend/requirements.txt
 
