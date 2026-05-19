@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
 import { StyleEditorPopover, type StyleValues } from './StyleEditorPopover'
 import { DeleteSpeakerModal } from './DeleteSpeakerModal'
-import { PaletteIcon } from './icons'
+import { PaletteIcon, TrashIcon } from './icons'
 
 const iconBtn =
   'inline-flex items-center justify-center w-[26px] h-[26px] bg-transparent border border-border text-text-muted rounded-md cursor-pointer p-0 hover:border-accent-light hover:text-accent-light focus-visible:border-accent-light focus-visible:text-accent-light'
@@ -95,7 +95,7 @@ export function SpeakerPanel() {
                 title="Delete speaker"
                 onClick={() => setDeleteTarget(label)}
               >
-                <span aria-hidden="true">×</span>
+                <TrashIcon />
               </button>
               {isOpen && (
                 <StyleEditorPopover

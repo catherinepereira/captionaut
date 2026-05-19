@@ -2,6 +2,20 @@ import { useEffect, useId } from 'react'
 import { useCaptionStore } from '../stores/captionStore'
 import { FONT_OPTIONS } from '../utils/fonts'
 
+function buildOutlineShadow(color: string, thickness: number): string | undefined {
+  if (thickness <= 0) return undefined
+  const radius = Math.max(0.5, thickness * 0.5)
+  const steps = Math.max(8, Math.round(radius * 4))
+  const parts: string[] = []
+  for (let i = 0; i < steps; i++) {
+    const angle = (i * Math.PI * 2) / steps
+    const x = (Math.cos(angle) * radius).toFixed(2)
+    const y = (Math.sin(angle) * radius).toFixed(2)
+    parts.push(`${x}px ${y}px 0 ${color}`)
+  }
+  return parts.join(', ')
+}
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -60,7 +74,7 @@ export function StylePanel({ open, onClose }: Props) {
 
         <div
           className="border border-border rounded-md px-4 py-7 mb-5 text-center min-h-[88px] flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #1a1535 0%, #0e0c1a 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #232730 0%, #15171c 100%)' }}
         >
           <div
             className="font-bold"
@@ -68,7 +82,7 @@ export function StylePanel({ open, onClose }: Props) {
               fontFamily: captionStyle.fontFamily,
               fontSize: Math.min(captionStyle.fontSize * 0.5, 32),
               color: captionStyle.color,
-              textShadow: `0 0 2px ${captionStyle.outlineColor}, 0 0 4px ${captionStyle.outlineColor}`,
+              textShadow: buildOutlineShadow(captionStyle.outlineColor, captionStyle.outlineThickness),
             }}
           >
             Sample caption text

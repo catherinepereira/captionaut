@@ -47,11 +47,11 @@ interface CaptionProps extends BaseProps {
 
 type Props = SpeakerProps | CaptionProps
 
-const row = 'grid grid-cols-[64px_1fr] items-center gap-2.5'
+const row = 'grid grid-cols-[78px_1fr] items-center gap-2.5'
 const lbl = 'text-[11px] uppercase tracking-[0.04em] text-text-muted'
 const baseInput = 'bg-bg border border-border rounded-sm px-2 py-1 text-xs text-text-primary outline-none focus-visible:border-accent-light'
 const rangeWrap = 'flex items-center gap-2 w-full'
-const rangeVal = 'text-[11px] font-mono text-text-muted min-w-7 text-right'
+const rangeVal = 'text-[11px] font-mono text-text-muted min-w-9 text-right'
 
 export function StyleEditorPopover(props: Props) {
   const { values, defaults, onChange, onClose, onClear } = props
@@ -83,7 +83,7 @@ export function StyleEditorPopover(props: Props) {
       role="dialog"
       aria-label={props.variant === 'speaker' ? 'Speaker style' : 'Caption style'}
       onClick={(e) => e.stopPropagation()}
-      className="absolute top-[calc(100%+6px)] right-0 bg-card border border-border rounded-md p-3 z-10 shadow-[0_8px_24px_rgba(0,0,0,0.4)] flex flex-col gap-2 min-w-[240px]"
+      className="absolute top-[calc(100%+6px)] right-0 bg-card border border-border rounded-md p-3 z-50 shadow-[0_8px_24px_rgba(0,0,0,0.4)] flex flex-col gap-2 min-w-[240px]"
     >
       {props.variant === 'speaker' && (
         <label className={row}>
@@ -99,24 +99,6 @@ export function StyleEditorPopover(props: Props) {
           />
         </label>
       )}
-
-      <label className={row}>
-        <span className={lbl}>Text color</span>
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => onChange({ color: e.target.value })}
-        />
-      </label>
-
-      <label className={row}>
-        <span className={lbl}>Outline</span>
-        <input
-          type="color"
-          value={outline}
-          onChange={(e) => onChange({ outlineColor: e.target.value })}
-        />
-      </label>
 
       <label className={row}>
         <span className={lbl}>Font</span>
@@ -152,6 +134,24 @@ export function StyleEditorPopover(props: Props) {
       </label>
 
       <label className={row}>
+        <span className={lbl}>Text color</span>
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => onChange({ color: e.target.value })}
+        />
+      </label>
+
+      <label className={row}>
+        <span className={lbl}>Outline</span>
+        <input
+          type="color"
+          value={outline}
+          onChange={(e) => onChange({ outlineColor: e.target.value })}
+        />
+      </label>
+
+      <label className={row}>
         <span className={lbl}>Thickness</span>
         <div className={rangeWrap}>
           <input
@@ -167,7 +167,7 @@ export function StyleEditorPopover(props: Props) {
       </label>
 
       <label className={row}>
-        <span className={lbl}>X (%)</span>
+        <span className={lbl}>Horizontal</span>
         <div className={rangeWrap}>
           <input
             type="range" min={0} max={100} step={1}
@@ -175,12 +175,12 @@ export function StyleEditorPopover(props: Props) {
             onChange={(e) => onChange({ posX: parseInt(e.target.value, 10) })}
             className="flex-1 accent-accent"
           />
-          <span className={rangeVal}>{Math.round(values.posX ?? defaults.posX)}</span>
+          <span className={rangeVal}>{Math.round(values.posX ?? defaults.posX)}%</span>
         </div>
       </label>
 
       <label className={row}>
-        <span className={lbl}>Y (%)</span>
+        <span className={lbl}>Vertical</span>
         <div className={rangeWrap}>
           <input
             type="range" min={0} max={100} step={1}
@@ -188,7 +188,7 @@ export function StyleEditorPopover(props: Props) {
             onChange={(e) => onChange({ posY: parseInt(e.target.value, 10) })}
             className="flex-1 accent-accent"
           />
-          <span className={rangeVal}>{Math.round(values.posY ?? defaults.posY)}</span>
+          <span className={rangeVal}>{Math.round(values.posY ?? defaults.posY)}%</span>
         </div>
       </label>
 

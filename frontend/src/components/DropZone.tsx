@@ -24,7 +24,7 @@ export function DropZone({ onFile, disabled }: Props) {
     'w-full px-10 py-14 flex flex-col items-center gap-2.5 rounded-md border-2 border-dashed text-text-muted bg-input transition-colors'
   const interactive = disabled
     ? 'cursor-default opacity-50 border-border'
-    : `cursor-pointer ${dragging ? 'border-accent bg-[#1a1535]' : 'border-border'} hover:border-accent hover:bg-[#1a1535] focus-visible:border-accent focus-visible:bg-[#1a1535] focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(107,140,179,0.35)]`
+    : `cursor-pointer ${dragging ? 'border-accent bg-elevated' : 'border-border'} hover:border-accent hover:bg-elevated focus-visible:border-accent focus-visible:bg-elevated focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_rgba(107,140,179,0.35)]`
 
   return (
     <button

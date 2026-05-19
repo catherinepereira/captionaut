@@ -6,7 +6,7 @@ import {
   insertCaptionAt,
 } from '../utils/captions'
 import { StyleEditorPopover, type StyleValues } from './StyleEditorPopover'
-import { PaletteIcon } from './icons'
+import { PaletteIcon, TrashIcon } from './icons'
 
 const SCRIPT_EXT_RE = /\.(txt|srt)$/i
 
@@ -91,10 +91,10 @@ const CaptionRow = memo(function CaptionRow({
     setEditingField(null)
   }
 
-  const rowBaseClass = 'relative px-[18px] py-3 border-b border-border cursor-text transition-colors hover:bg-input focus-visible:bg-input focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2'
+  const rowBaseClass = 'relative px-[18px] py-3 border-b border-border cursor-default transition-colors hover:bg-input focus-visible:bg-input focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2'
   const rowStateClass =
     isActive
-      ? 'bg-[#1e1a40] border-l-[3px] border-l-accent'
+      ? 'bg-elevated border-l-[3px] border-l-accent'
       : isMismatched
         ? 'border-l-[3px] border-l-red'
         : isSelected
@@ -118,7 +118,7 @@ const CaptionRow = memo(function CaptionRow({
   return (
     <div
       ref={(el) => registerRef(caption.id, el)}
-      className={`${rowBaseClass} ${rowStateClass}`}
+      className={`${rowBaseClass} ${rowStateClass}${styleOpen ? ' z-40' : ''}`}
       style={rowStyle}
       role="button"
       tabIndex={0}
@@ -126,9 +126,8 @@ const CaptionRow = memo(function CaptionRow({
       aria-current={isActive ? 'true' : undefined}
       onClick={() => editingField === null && onSeek(caption.start)}
       onKeyDown={onKey}
-      title="Click to jump to this caption · use the select button for bulk ops"
     >
-      <div className="absolute top-3 right-3.5 flex gap-1.5 items-center" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute top-3 right-3.5 flex gap-1.5 items-center z-20" onClick={(e) => e.stopPropagation()}>
         <div className="relative">
           <button
             type="button"
@@ -195,18 +194,27 @@ const CaptionRow = memo(function CaptionRow({
         <button
           type="button"
           aria-pressed={isSelected}
+          aria-label={isSelected ? 'Deselect' : 'Select'}
           title={isSelected ? 'Deselect' : 'Select'}
           onClick={(e) => { e.stopPropagation(); onToggleSelect(caption.id, e) }}
-          className={`inline-flex items-center justify-center h-[26px] px-2.5 border rounded-md text-[11px] font-medium transition-colors ${
+          className={`inline-flex items-center justify-center w-[26px] h-[26px] border rounded-md transition-colors ${
             isSelected
               ? 'bg-accent border-accent text-white hover:bg-accent-light hover:border-accent-light'
               : 'bg-transparent border-border text-text-muted hover:border-accent-light hover:text-accent-light'
           }`}
         >
-          {isSelected ? 'Selected' : 'Select'}
+          {isSelected ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          )}
         </button>
       </div>
-      <div className="flex items-center gap-1.5 mb-1.5 relative" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-1.5 mb-1.5 relative pr-[70px]" onClick={(e) => e.stopPropagation()}>
         <select
           value={caption.speaker ?? ''}
           aria-label="Speaker"
@@ -546,7 +554,7 @@ export function CaptionEditor() {
       )}
       <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-border">
         <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent-light">Captions</span>
-        <span className="text-xs text-text-dim">
+        <span className="text-xs text-text-dim ml-3">
           {trimmedQuery
             ? `${filteredCaptions.length} of ${captions.length} match`
             : `${captions.length} segments`}
@@ -566,7 +574,7 @@ export function CaptionEditor() {
           onClick={addAtPlayhead}
           title="Add a new caption at the current playhead"
         >
-          + Add
+          +
         </button>
         <button
           className={headerBtn}
@@ -662,11 +670,12 @@ export function CaptionEditor() {
             )}
           </div>
           <button
-            className={`${bulkBtn} text-red hover:enabled:border-red hover:enabled:text-red hover:enabled:bg-red/10`}
+            className="bg-transparent border border-border text-red w-[26px] h-[26px] rounded-md cursor-pointer flex items-center justify-center hover:enabled:border-red hover:enabled:bg-red/10 disabled:opacity-[0.35] disabled:cursor-not-allowed"
             onClick={deleteNow}
             title="Delete selected"
+            aria-label="Delete selected"
           >
-            Delete
+            <TrashIcon />
           </button>
           <button
             onClick={clearSelection}
@@ -680,7 +689,7 @@ export function CaptionEditor() {
       <div className="overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm" role="list" aria-label="Captions">
         {captions.length === 0 && (
           <p className="px-[18px] py-8 text-[13px] text-text-dim text-center">
-            No captions yet. Press <strong>+ Add</strong> to create one at the current playhead.
+            No captions yet. Press <strong>+</strong> to create one at the current playhead.
           </p>
         )}
         {captions.length > 0 && filteredCaptions.length === 0 && (

@@ -69,7 +69,7 @@ export function App() {
         {isBusy && <BusyView />}
 
         {isEditing && (
-          <div className="grid gap-7 px-10 py-7 mx-auto items-start max-w-[1680px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_460px]">
+          <div className="grid gap-7 px-10 py-7 mx-auto items-start max-w-[1840px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_580px]">
             <div className="flex flex-col gap-3">
               <VideoPlayer />
               <CaptionTimeline />
