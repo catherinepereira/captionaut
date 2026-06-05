@@ -1,66 +1,76 @@
-import { useState } from 'react'
-import { useCaptionStore } from './stores/captionStore'
-import { useGlobalKeybinds } from './hooks/useGlobalKeybinds'
-import { useProjectPersistence } from './hooks/useProjectPersistence'
-import { useVideoPipeline } from './hooks/useVideoPipeline'
-import { AppHeader } from './components/AppHeader'
-import { LandingHero } from './components/LandingHero'
-import { BusyView } from './components/BusyView'
-import { VideoPlayer } from './components/VideoPlayer'
-import { CaptionTimeline } from './components/CaptionTimeline'
-import { CaptionEditor } from './components/CaptionEditor'
-import { Toolbar } from './components/Toolbar'
-import { ErrorBanner } from './components/ErrorBanner'
-import { ConfigScreen } from './components/ConfigScreen'
-import { SpeakerPanel } from './components/SpeakerPanel'
-import { SettingsPanel } from './components/SettingsPanel'
-import { ToastStack } from './components/ToastStack'
-import { RestoreProjectModal } from './components/RestoreProjectModal'
-import { ConfirmModal } from './components/ConfirmModal'
+import { useState } from "react";
+import { useCaptionStore } from "./stores/captionStore";
+import { useGlobalKeybinds } from "./hooks/useGlobalKeybinds";
+import { useProjectPersistence } from "./hooks/useProjectPersistence";
+import { useVideoPipeline } from "./hooks/useVideoPipeline";
+import { AppHeader } from "./components/AppHeader";
+import { LandingHero } from "./components/LandingHero";
+import { BusyView } from "./components/BusyView";
+import { VideoPlayer } from "./components/VideoPlayer";
+import { CaptionTimeline } from "./components/CaptionTimeline";
+import { CaptionEditor } from "./components/CaptionEditor";
+import { Toolbar } from "./components/Toolbar";
+import { ErrorBanner } from "./components/ErrorBanner";
+import { ConfigScreen } from "./components/ConfigScreen";
+import { SpeakerPanel } from "./components/SpeakerPanel";
+import { SettingsPanel } from "./components/SettingsPanel";
+import { ToastStack } from "./components/ToastStack";
+import { RestoreProjectModal } from "./components/RestoreProjectModal";
+import { ConfirmModal } from "./components/ConfirmModal";
 
 export function App() {
-  const state = useCaptionStore((s) => s.state)
-  const reset = useCaptionStore((s) => s.reset)
-  const isReTranscribing = useCaptionStore((s) => s.isReTranscribing)
-  const setReTranscribing = useCaptionStore((s) => s.setReTranscribing)
-  const setState = useCaptionStore((s) => s.setState)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const state = useCaptionStore((s) => s.state);
+  const reset = useCaptionStore((s) => s.reset);
+  const isReTranscribing = useCaptionStore((s) => s.isReTranscribing);
+  const setReTranscribing = useCaptionStore((s) => s.setReTranscribing);
+  const setState = useCaptionStore((s) => s.setState);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const {
-    handleVideoFile, handleStartTranscription, continueProjectWithFile, handleReTranscribe,
+    handleVideoFile,
+    handleStartTranscription,
+    continueProjectWithFile,
+    handleReTranscribe,
     restorePrompt,
-    reTranscribePromptOpen, resolveReTranscribe,
-  } = useVideoPipeline()
+    reTranscribePromptOpen,
+    resolveReTranscribe,
+  } = useVideoPipeline();
 
-  useGlobalKeybinds()
-  useProjectPersistence()
+  useGlobalKeybinds();
+  useProjectPersistence();
 
-  const isBusy = state === 'uploading' || state === 'transcribing'
-  const isEditing = state === 'editing' || state === 'rendering'
+  const isBusy = state === "uploading" || state === "transcribing";
+  const isEditing = state === "editing" || state === "rendering";
 
   return (
     <div className="min-h-screen">
-      <AppHeader onNewVideo={reset} onOpenSettings={() => setSettingsOpen(true)} />
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <AppHeader
+        onNewVideo={reset}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
       <ErrorBanner />
 
       <main>
-        {state === 'idle' && (
+        {state === "idle" && (
           <LandingHero
             onFile={handleVideoFile}
             onContinueProject={continueProjectWithFile}
           />
         )}
 
-        {state === 'configuring' && (
+        {state === "configuring" && (
           <ConfigScreen
             onStart={handleStartTranscription}
             onCancel={() => {
               if (isReTranscribing) {
-                setReTranscribing(false)
-                setState('editing')
+                setReTranscribing(false);
+                setState("editing");
               } else {
-                reset()
+                reset();
               }
             }}
           />
@@ -69,7 +79,7 @@ export function App() {
         {isBusy && <BusyView />}
 
         {isEditing && (
-          <div className="grid gap-7 px-10 py-7 mx-auto items-start max-w-[1840px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_580px]">
+          <div className="mx-auto grid max-w-[1840px] grid-cols-1 items-start gap-7 px-10 py-7 lg:grid-cols-[minmax(0,1fr)_580px]">
             <div className="flex flex-col gap-3">
               <VideoPlayer />
               <CaptionTimeline />
@@ -95,7 +105,7 @@ export function App() {
       />
       <ToastStack />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

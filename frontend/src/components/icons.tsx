@@ -17,7 +17,7 @@ export function TrashIcon({ size = 14 }: { size?: number }) {
       <path d="M10 11v6" />
       <path d="M14 11v6" />
     </svg>
-  )
+  );
 }
 
 export function PaletteIcon({ size = 14 }: { size?: number }) {
@@ -38,5 +38,5 @@ export function PaletteIcon({ size = 14 }: { size?: number }) {
       <circle cx="12" cy="7" r="1.2" />
       <circle cx="16.5" cy="10.5" r="1.2" />
     </svg>
-  )
+  );
 }

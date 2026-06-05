@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { DEV_BACKEND_PORT, DEV_FRONTEND_PORT } from './src/config'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { DEV_BACKEND_PORT, DEV_FRONTEND_PORT } from "./src/config";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -9,7 +9,7 @@ export default defineConfig({
     port: DEV_FRONTEND_PORT,
     strictPort: true,
     proxy: {
-      '/api': {
+      "/api": {
         target: `http://127.0.0.1:${DEV_BACKEND_PORT}`,
         changeOrigin: false,
         ws: false,
@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     emptyOutDir: true,
   },
-})
+});
