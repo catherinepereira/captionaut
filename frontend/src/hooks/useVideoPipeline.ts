@@ -72,7 +72,7 @@ export function useVideoPipeline() {
     if (state === "idle") progressStreamRef.current?.close();
   }, [state]);
 
-  // Restore captions immediately, then re-upload in the background to mint
+  // Restore captions immediately, then re-upload in the background to get
   // a fresh jobId for render / re-align.
   const restoreFromSaved = (file: File, prior: SavedProject) => {
     setVideoFile(file);

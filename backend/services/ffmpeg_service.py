@@ -127,7 +127,7 @@ def _sanitize_stderr(stderr: str) -> str:
 # ASS alignment uses numpad layout: rows are top(7/8/9), middle(4/5/6),
 # bottom(1/2/3), columns are left/center/right. Anchor at the bottom row
 # (1/2/3) so the visual "position" point sits at the text baseline, then use
-# an inline \pos(x,y) override per caption to drop the text precisely.
+# an inline \pos(x,y) override per caption to place the text precisely.
 PLAY_RES_X = 1920
 PLAY_RES_Y = 1080
 
@@ -264,7 +264,7 @@ def _build_ass(
         pos_y = round(eff_pos_y_pct * PLAY_RES_Y / 100)
 
         # Per-caption overrides take precedence over the speaker / default
-        # style. Emitted as inline `{...}` tags to avoid minting a Style per
+        # style. Emitted as inline `{...}` tags to avoid creating a Style per
         # caption. `\pos` anchors the line at the user-chosen X%/Y% point in
         # the video frame. `\an` re-anchors alignment.
         override_tags = f"\\an{eff_align}\\pos({pos_x},{pos_y})"

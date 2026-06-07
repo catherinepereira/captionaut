@@ -1,14 +1,15 @@
 """Bounded in-memory job cache.
 
-Tracks per-job paths (upload, rendered output, denoised audio), progress,
-status, captions, and speakers. When the LRU evicts the oldest non-active
-job, its disk artifacts are deleted alongside the entry. An in-flight guard
-prevents eviction during a running transcription.
+Tracks per-job paths (upload, rendered output), progress, status, captions,
+and speakers. When the LRU evicts the oldest non-active job, its disk
+artifacts (including the dinnote stage-output directory) are deleted alongside
+the entry. An in-flight guard prevents eviction during a running transcription.
 """
 
 from __future__ import annotations
 
 import logging
+import shutil
 from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
@@ -17,7 +18,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 MAX_JOBS = 50
-_JOB_FILE_KEYS = ("path", "output_path", "denoised_path")
+_JOB_FILE_KEYS = ("path", "output_path")
 
 
 _jobs: OrderedDict[str, dict] = OrderedDict()
@@ -30,7 +31,7 @@ def get_dirs():
     return UPLOAD_DIR, OUTPUT_DIR
 
 
-def _delete_job_files(job: dict) -> None:
+def _delete_job_files(job_id: str, job: dict) -> None:
     for key in _JOB_FILE_KEYS:
         p = job.get(key)
         if not p:
@@ -39,6 +40,15 @@ def _delete_job_files(job: dict) -> None:
             Path(p).unlink(missing_ok=True)
         except OSError as e:
             log.warning("Failed to remove %s (%s): %s", key, p, e)
+
+    # dinnote writes each job's stage outputs (denoised wav, vad/diarization/
+    # transcription JSON) under OUTPUT_DIR/<job_id>/. Drop the whole tree.
+    _, output_dir = get_dirs()
+    job_dir = output_dir / job_id
+    try:
+        shutil.rmtree(job_dir, ignore_errors=True)
+    except OSError as e:
+        log.warning("Failed to remove job dir %s: %s", job_dir, e)
 
 
 def _evict_until_bounded() -> None:
@@ -52,7 +62,7 @@ def _evict_until_bounded() -> None:
         if job_id in _active_jobs:
             continue
         old = _jobs.pop(job_id)
-        _delete_job_files(old)
+        _delete_job_files(job_id, old)
         overflow -= 1
 
 

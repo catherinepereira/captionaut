@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .api.routes import router
 
-# Uploads, rendered outputs, and the denoised audio cache live under
+# Uploads, rendered outputs, and the denoised audio cache are stored under
 # `data/` at the repo root by default. CAPTIONAUT_DATA_DIR overrides this.
 # Docker points it at a mounted volume.
 _data_root = Path(
@@ -23,7 +23,7 @@ app.include_router(router, prefix="/api")
 
 # Serve the built React bundle at / when it exists. In local dev the dir is
 # absent (Vite serves on a separate port). The Docker multi-stage build
-# drops the compiled bundle here.
+# writes the compiled bundle here.
 _static_dir = Path(__file__).parent.parent / "frontend" / "dist"
 if _static_dir.exists():
     app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="static")

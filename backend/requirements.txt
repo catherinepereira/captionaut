@@ -7,9 +7,6 @@
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 python-multipart==0.0.17
-openai-whisper==20250625
 pydantic==2.10.3
 aiofiles==24.1.0
-pyannote.audio==3.3.2
-torchaudio>=2.1
-demucs==4.0.1
+dinnote>=0.2.0

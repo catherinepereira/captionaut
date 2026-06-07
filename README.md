@@ -5,14 +5,14 @@
 
 Captionaut is a video captioning app. You drop a video onto the page, Whisper transcribes it on your machine, you clean up the captions in an inline editor, and then you either export `.srt` / `.vtt` or render the captions directly into a new video file.
 
-The pipeline is Whisper for transcription, pyannote for optional speaker diarization, Demucs for optional vocal isolation when the audio is noisy, and FFmpeg for the render step. The frontend is React + Tailwind, the backend is FastAPI. Two supported deployment paths: a **local dev** setup (Vite + Python) and a **Docker container** that bundles everything behind a single CUDA-enabled image.
+The pipeline is Whisper for transcription, pyannote for optional speaker diarization, Demucs for optional vocal isolation when the audio is noisy, and FFmpeg for the render step. The frontend is React + Tailwind, the backend is FastAPI. Two supported deployment paths: a local dev setup (Vite + Python) and a Docker container that bundles everything behind a single CUDA-enabled image.
 
 ## Hardware
 
 Captionaut needs a GPU. The startup check will refuse to run on a CPU-only machine because the pipeline is unusably slow without one.
 
-- **NVIDIA GPU** on Linux or Windows, with CUDA 12.1+ and at least 6 GB of VRAM. Tested on an RTX 4070 SUPER, and an RTX 3060 is fine.
-- **Apple Silicon Mac** (M1 or newer). Uses Metal via PyTorch's MPS backend. Diarization quality on MPS can be slightly softer than CUDA because some pyannote ops fall back to CPU.
+- NVIDIA GPU on Linux or Windows, with CUDA 12.1+ and at least 6 GB of VRAM. Tested on an RTX 4070 SUPER, and an RTX 3060 is fine.
+- Apple Silicon Mac (M1 or newer). Uses Metal via PyTorch's MPS backend. Diarization quality on MPS can be slightly softer than CUDA because some pyannote ops fall back to CPU.
 - AMD GPUs, Intel Macs, and integrated graphics aren't supported.
 
 ## Setup
@@ -100,7 +100,7 @@ Apple Silicon and AMD aren't supported in Docker because GPU passthrough only wo
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `./data/` at the repo root in local dev, `/data` in the container |
+| `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache are stored | `./data/` at the repo root in local dev, `/data` in the container |
 | `FFMPEG_BIN` | Override the FFmpeg binary used for rendering | Whatever is on `PATH` |
 | `HF_TOKEN` | HuggingFace token for pyannote model downloads | Read from the Settings panel in the UI, stored in localStorage |
 
@@ -120,9 +120,7 @@ backend/
 │   ├── _job_cache.py        bounded LRU + in-flight guard
 │   └── _sse.py              shared SSE polling helper
 ├── services/
-│   ├── whisper_service.py   transcription + tqdm-based progress
-│   ├── diarize_service.py   pyannote pipeline + speaker assignment
-│   ├── denoise_service.py   Demucs + in-memory decode helper
+│   ├── dinnote_service.py   orchestrates dinnote's denoise/vad/diarize/transcribe stages
 │   ├── ffmpeg_service.py    render, srt/vtt export, ASS escaping
 │   └── alignment_service.py difflib-based script alignment
 ├── models/schemas.py        Pydantic request/response models
@@ -140,15 +138,21 @@ frontend/src/
 
 ## How it works
 
-A handful of non-obvious things:
+### Same origin
 
-The frontend and backend always run on the same origin: Vite proxies `/api` requests through to FastAPI. There is no CORS configuration anywhere.
+Vite proxies `/api` to FastAPI in dev, so frontend and backend share an origin. No CORS config.
 
-Whisper doesn't expose a progress callback, so we monkey-patch the `tqdm` instance that lives inside `whisper.transcribe` for the duration of one call. The patched class forwards each `update(n)` to a callback, which writes to a job dict that an SSE endpoint polls. The user sees a live progress bar.
+### Pipeline
 
-PyTorch's bundled `torchcodec` package can't load FFmpeg 8's shared libraries on Windows. Both Demucs (`torchaudio.save`) and pyannote (its file loader) trip on this. The fix in both cases is to decode the audio ourselves with an FFmpeg subprocess into a numpy array, then hand the tensor to the model. There's a side benefit: when denoise and diarize are both enabled, the audio is decoded once and the vocal-isolated tensor flows from Demucs to Whisper to pyannote without ever touching disk.
+dinnote stage modules run in order: denoise (optional), VAD, diarization (optional), whole-file Whisper pass. The transcribe stage fires a callback per emitted segment. The callback writes a percentage to a job dict that an SSE endpoint polls for the progress bar.
 
-The job cache is a bounded `OrderedDict` of the 50 most recent jobs. When a job is evicted, every file it tracked on disk (the upload, the rendered output, the denoised audio) is deleted alongside it. An in-flight guard prevents the cache from yanking files out from under a running transcription.
+### Audio decode
+
+PyTorch's bundled `torchcodec` can't load FFmpeg 8's shared libraries on Windows, and dinnote's torchaudio/Silero loaders fail on a video container. With denoise off, an FFmpeg subprocess extracts the audio to a 16 kHz mono WAV first. With denoise on, Demucs decodes the video and emits the WAV. Stages key their output filenames off a per-job directory under `data/` and read the previous stage's file from there.
+
+### Job cache
+
+A bounded `OrderedDict` of the 50 most recent jobs. Evicting a job deletes every file it tracked on disk (upload, rendered output, denoised audio). An in-flight guard blocks eviction during a running transcription.
 
 ## License
 
