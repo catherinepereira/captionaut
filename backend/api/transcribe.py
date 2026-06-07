@@ -59,7 +59,7 @@ async def transcribe(job_id: str, req: TranscribeRequest = TranscribeRequest()):
     ranges = _progress_ranges(req.denoise, req.diarization.enabled)
 
     # If denoise runs, the vocals tensor is shared in-memory with the later
-    # stages; otherwise each stage reads from the uploaded file directly.
+    # stages. Otherwise each stage reads from the uploaded file directly.
     whisper_source: Any = job["path"]
     diarize_source: Any = job["path"]
 

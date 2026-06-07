@@ -213,8 +213,8 @@ export function ConfigScreen({ onStart, onCancel }: Props) {
           </label>
           <p className={hintClass}>
             Recommended only for noisy videos. Isolates vocals before
-            transcription. Significantly slower; downloads a ~250 MB model on
-            first use.
+            transcription. Significantly slower, and downloads a ~250 MB model
+            on first use.
           </p>
         </section>
 

@@ -3,7 +3,7 @@ import { useCaptionStore } from "../stores/captionStore";
 import { saveProject, fingerprint } from "../utils/projects";
 
 // Auto-save the project to localStorage whenever editable state changes.
-// Only saves once captions actually exist (i.e. transcription has finished).
+// Only saves once captions exist (transcription has finished).
 export function useProjectPersistence(): void {
   const jobId = useCaptionStore((s) => s.jobId);
   const videoFile = useCaptionStore((s) => s.videoFile);

@@ -75,8 +75,8 @@ async def cached_models():
 async def capabilities():
     """Report which optional model caches are populated on disk.
 
-    Used by the frontend to surface a "downloading model" toast on first use,
-    so a 50 MB pyannote download doesn't look like the app froze.
+    Drives a "downloading model" toast on first use, so a 50 MB pyannote
+    download doesn't look like the app froze.
     """
     pyannote_cached = PYANNOTE_CACHE_DIR.exists() and any(PYANNOTE_CACHE_DIR.iterdir())
     demucs_cached = (

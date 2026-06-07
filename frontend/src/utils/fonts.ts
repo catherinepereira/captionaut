@@ -1,6 +1,6 @@
-// Fonts safe to assume on a typical Windows / macOS system. libavfilter's
+// Fonts safe to assume on a Windows / macOS system. libavfilter's
 // `ass` filter resolves these via fontconfig at render time, so anything the
-// host has installed will work; this list is just the picker's options.
+// host has installed will work. This list is only the picker's options.
 export const FONT_OPTIONS: string[] = [
   "Arial",
   "Arial Black",

@@ -165,7 +165,7 @@ export function useVideoPipeline() {
           denoise: transcribeConfig.denoise,
         });
       } catch {
-        // Non-fatal: the toast hint is just an affordance.
+        // Non-fatal: the toast hint is only an affordance.
       }
     }
 

@@ -12,7 +12,7 @@ AudioInput = str | np.ndarray
 
 # `whisper.transcribe` resolves to the re-exported function, not the submodule
 # (whisper/__init__.py does `from .transcribe import transcribe`). Grab the
-# real module from sys.modules so we can monkey-patch its `tqdm.tqdm`.
+# real module from sys.modules to monkey-patch its `tqdm.tqdm`.
 _whisper_transcribe_mod = sys.modules["whisper.transcribe"]
 _whisper_pkg = sys.modules["whisper"]
 
@@ -49,7 +49,7 @@ def get_model(
     else:
         # whisper/__init__.py does `from tqdm import tqdm`, so the class lives
         # as an attribute of the whisper package. Swap it for the duration of
-        # load_model() so download byte ticks reach our callback.
+        # load_model() so download byte ticks reach the callback.
         original = _whisper_pkg.tqdm
         _whisper_pkg.tqdm = _make_progress_tqdm(download_cb)
         try:
@@ -65,7 +65,7 @@ def _make_progress_tqdm(cb: Callable[[int], None]):
     """Build a tqdm-compatible class that forwards updates to `cb`.
 
     A class is built per call so each transcribe() gets its own closure-captured
-    callback; concurrent invocations don't clobber each other.
+    callback. Concurrent invocations don't clobber each other.
     """
 
     class _ProgressTqdm:

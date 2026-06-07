@@ -49,7 +49,7 @@ export function saveProject(p: SavedProject): void {
     }
     localStorage.setItem(INDEX_KEY, JSON.stringify(index));
   } catch {
-    // Quota or serialization failure; non-fatal.
+    // Quota or serialization failure, non-fatal.
   }
 }
 

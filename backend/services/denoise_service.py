@@ -72,7 +72,7 @@ def decode_audio(input_path: str, target_sr: int, channels: int = 2) -> np.ndarr
         log.error("FFmpeg decode failed: %s", proc.stderr.decode(errors="replace"))
         raise RuntimeError("Failed to decode audio.")
 
-    # np.frombuffer returns a read-only view; copy so callers can mutate
+    # np.frombuffer returns a read-only view, so copy so callers can mutate
     # and the source bytes can be GC'd.
     arr = np.frombuffer(proc.stdout, dtype=np.float32).reshape(-1, channels).T
     return arr.copy()
@@ -112,7 +112,7 @@ def write_wav(vocals: np.ndarray, sr: int, out_path: Path) -> str:
 def to_speech_mono(vocals: np.ndarray, sr: int) -> np.ndarray:
     """Downmix to mono and resample to SPEECH_SAMPLE_RATE.
 
-    Linear interpolation is adequate for speech; Whisper re-computes its
+    Linear interpolation is adequate for speech. Whisper re-computes its
     own mel-spectrogram afterwards.
     """
     mono = vocals.mean(axis=0) if vocals.ndim == 2 else vocals

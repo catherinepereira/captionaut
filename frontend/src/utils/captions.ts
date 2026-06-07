@@ -127,7 +127,7 @@ export function insertCaptionAt(
   const containing = captions.find((c) => t >= c.start && t < c.end);
   let start = Math.max(0, containing ? containing.end : t);
 
-  // Snap to the next caption's start if our window would overlap it.
+  // Snap to the next caption's start if the window would overlap it.
   const next = captions.find((c) => c.start > start);
   const ceiling = Math.min(maxEnd, next ? next.start : maxEnd);
   if (start >= ceiling) {

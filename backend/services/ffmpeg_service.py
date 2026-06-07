@@ -91,15 +91,15 @@ def _safe_outline_thickness(thickness: float) -> float:
 def _escape_ass_text(text: str) -> str:
     """Sanitize caption text for an ASS Dialogue line.
 
-    libass treats `{...}` as override-tag blocks; we escape braces to prevent
-    injection. Newlines become `\\N`. Control chars are dropped.
+    libass treats `{...}` as override-tag blocks, so braces are escaped to
+    prevent injection. Newlines become `\\N`. Control chars are dropped.
     """
     if not text:
         return ""
     t = "".join(ch for ch in text if ch == "\t" or ord(ch) >= 0x20 or ch in "\r\n")
     t = t.replace("\r\n", "\n").replace("\r", "\n").replace("\n", r"\N")
     t = t.replace("\\", r"\\").replace("{", r"\{").replace("}", r"\}")
-    # The `\\` replace above clobbered our intentional `\N`. Restore it.
+    # The `\\` replace above clobbered the intentional `\N`. Restore it.
     t = t.replace(r"\\N", r"\N")
     return t
 
@@ -125,7 +125,7 @@ def _sanitize_stderr(stderr: str) -> str:
 
 
 # ASS alignment uses numpad layout: rows are top(7/8/9), middle(4/5/6),
-# bottom(1/2/3); columns are left/center/right. We anchor at the bottom row
+# bottom(1/2/3), columns are left/center/right. Anchor at the bottom row
 # (1/2/3) so the visual "position" point sits at the text baseline, then use
 # an inline \pos(x,y) override per caption to drop the text precisely.
 PLAY_RES_X = 1920
@@ -162,8 +162,8 @@ def _style_line(
     alignment: int,
     outline_thickness: float,
 ) -> str:
-    # The 17th field (Outline) is the border thickness in pixels; ASS accepts
-    # floats. Shadow stays at 1 to match the prior look.
+    # The 17th field (Outline) is the border thickness in pixels, and ASS
+    # accepts floats. Shadow stays at 1 to match the prior look.
     thickness = _safe_outline_thickness(outline_thickness)
     thickness_str = f"{thickness:g}"
     return (
@@ -264,9 +264,9 @@ def _build_ass(
         pos_y = round(eff_pos_y_pct * PLAY_RES_Y / 100)
 
         # Per-caption overrides take precedence over the speaker / default
-        # style. Emitted as inline `{...}` tags so we don't have to mint a
-        # Style per caption. `\pos` anchors the line at the user-chosen
-        # X%/Y% point in the video frame; `\an` re-anchors alignment.
+        # style. Emitted as inline `{...}` tags to avoid minting a Style per
+        # caption. `\pos` anchors the line at the user-chosen X%/Y% point in
+        # the video frame. `\an` re-anchors alignment.
         override_tags = f"\\an{eff_align}\\pos({pos_x},{pos_y})"
         primary_override = _hex_to_ass_inline_color(cap.color_override or "")
         outline_override = _hex_to_ass_inline_color(cap.outline_override or "")
@@ -334,7 +334,7 @@ def render_captions(
     speaker_pos_y: dict[str, float] | None = None,
     speaker_align: dict[str, str] | None = None,
 ) -> str:
-    # Write the .ass next to the input video so we can hand ffmpeg a bare
+    # Write the .ass next to the input video so ffmpeg gets a bare
     # filename for the `ass=` filter. Windows paths break libavfilter's
     # argument parser otherwise: backslashes get treated as escapes and the
     # drive-letter colon as an option separator.

@@ -65,7 +65,7 @@ export function VideoPlayer() {
         ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
         setThumbnail(canvas.toDataURL("image/jpeg", 0.75));
       } catch {
-        // CORS-tainted canvases or no decode yet; silent fail, retry later.
+        // CORS-tainted canvases or no decode yet. Silent fail, retry later.
       }
     };
 
@@ -186,7 +186,7 @@ export function VideoPlayer() {
     captionStyle.align;
 
   // Match the ASS \pos + bottom-row alignment semantics: (x,y) is the bottom
-  // of the text bbox; align picks which horizontal edge of the bbox sits at x.
+  // of the text bbox. Align picks which horizontal edge of the bbox sits at x.
   const overlayPlacement: React.CSSProperties = {
     left: `${posX}%`,
     top: `${posY}%`,

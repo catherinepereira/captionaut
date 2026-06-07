@@ -5,13 +5,13 @@
 
 Captionaut is a video captioning app. You drop a video onto the page, Whisper transcribes it on your machine, you clean up the captions in an inline editor, and then you either export `.srt` / `.vtt` or render the captions directly into a new video file.
 
-The pipeline is Whisper for transcription, pyannote for optional speaker diarization, Demucs for optional vocal isolation when the audio is noisy, and FFmpeg for the render step. The frontend is React + Tailwind; the backend is FastAPI. Two supported deployment paths: a **local dev** setup (Vite + Python) and a **Docker container** that bundles everything behind a single CUDA-enabled image.
+The pipeline is Whisper for transcription, pyannote for optional speaker diarization, Demucs for optional vocal isolation when the audio is noisy, and FFmpeg for the render step. The frontend is React + Tailwind, the backend is FastAPI. Two supported deployment paths: a **local dev** setup (Vite + Python) and a **Docker container** that bundles everything behind a single CUDA-enabled image.
 
 ## Hardware
 
 Captionaut needs a GPU. The startup check will refuse to run on a CPU-only machine because the pipeline is unusably slow without one.
 
-- **NVIDIA GPU** on Linux or Windows, with CUDA 12.1+ and at least 6 GB of VRAM. Tested on an RTX 4070 SUPER; an RTX 3060 is fine.
+- **NVIDIA GPU** on Linux or Windows, with CUDA 12.1+ and at least 6 GB of VRAM. Tested on an RTX 4070 SUPER, and an RTX 3060 is fine.
 - **Apple Silicon Mac** (M1 or newer). Uses Metal via PyTorch's MPS backend. Diarization quality on MPS can be slightly softer than CUDA because some pyannote ops fall back to CPU.
 - AMD GPUs, Intel Macs, and integrated graphics aren't supported.
 
@@ -102,7 +102,7 @@ Apple Silicon and AMD aren't supported in Docker because GPU passthrough only wo
 |---|---|---|
 | `CAPTIONAUT_DATA_DIR` | Where uploads, outputs, and the denoised audio cache live | `./data/` at the repo root in local dev, `/data` in the container |
 | `FFMPEG_BIN` | Override the FFmpeg binary used for rendering | Whatever is on `PATH` |
-| `HF_TOKEN` | HuggingFace token for pyannote model downloads | Read from the Settings panel in the UI; stored in localStorage |
+| `HF_TOKEN` | HuggingFace token for pyannote model downloads | Read from the Settings panel in the UI, stored in localStorage |
 
 See [`.env.example`](.env.example) for the same list with comments.
 
@@ -138,7 +138,7 @@ frontend/src/
 └── config.ts                shared dev port constants
 ```
 
-## How it actually works
+## How it works
 
 A handful of non-obvious things:
 

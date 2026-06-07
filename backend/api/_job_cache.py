@@ -42,7 +42,7 @@ def _delete_job_files(job: dict) -> None:
 
 
 def _evict_until_bounded() -> None:
-    """Drop oldest non-active jobs until we're under MAX_JOBS."""
+    """Drop oldest non-active jobs until under MAX_JOBS."""
     if len(_jobs) <= MAX_JOBS:
         return
     overflow = len(_jobs) - MAX_JOBS

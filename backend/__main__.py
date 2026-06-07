@@ -6,8 +6,8 @@ import sys
 def _require_gpu() -> str:
     """Exit unless a CUDA GPU or Apple Silicon MPS device is available.
 
-    Whisper, pyannote, and Demucs are unusably slow on CPU; bail before model
-    load rather than hang for hours.
+    Whisper, pyannote, and Demucs are unusably slow on CPU, so bail before
+    model load rather than hang for hours.
     """
     import torch
 

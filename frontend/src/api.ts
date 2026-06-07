@@ -223,6 +223,6 @@ export function downloadBlob(blob: Blob, filename: string): void {
   a.href = url;
   a.download = filename;
   a.click();
-  // Defer revoke a tick; some browsers haven't started the download yet.
+  // Defer revoke a tick, some browsers haven't started the download yet.
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }

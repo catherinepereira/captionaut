@@ -27,6 +27,6 @@ export function saveSettings(s: UserSettings): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
   } catch {
-    // localStorage write failed (quota / disabled); non-fatal.
+    // localStorage write failed (quota / disabled), non-fatal.
   }
 }
