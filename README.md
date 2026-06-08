@@ -1,6 +1,6 @@
 # 👩‍🚀Captionaut
 
-<img width="1902" height="1283" alt="Screenshot 2026-05-18 175100" src="https://github.com/user-attachments/assets/8fa979c0-c3e1-48dc-b1cd-868acb4c5d65" />
+<img width="600" src="https://i.ibb.co/vCs5r6PD/image.png" alt="Captionaut" />
 
 
 Captionaut is a video captioning app. You drop a video onto the page, Whisper transcribes it on your machine, you clean up the captions in an inline editor, and then you either export `.srt` / `.vtt` or render the captions directly into a new video file.
